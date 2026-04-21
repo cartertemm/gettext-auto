@@ -19,7 +19,7 @@ With gettext-auto you focus on shipping, the model handles the boring first pass
 - Never overwrites an entry a human has already reviewed and cleared.
 - Writes every translation as fuzzy so nothing the model produced ships until someone signs off on it.
 - Verifies placeholders and plural counts before writing. If something is off, the entry gets an `AUTOTRANS-ERROR:` comment so `msgfmt` catches it.
-- First class support for NVDA add-ons translates `summary` and `description` from manifest.ini in the same pass.
+- First class support for NVDA screen reader add-ons translates `summary` and `description` from manifest.ini in the same pass.
 
 ## Installation
 
@@ -87,6 +87,27 @@ The skill is a thin wrapper around the `gettext-auto` CLI. You can run any of th
 All of the discovery commands accept `--po-root` and `--cwd`.
 
 If your project is an NVDA add-on, you want to use `gettext-auto nvda scan <lang>` and `gettext-auto nvda apply <lang>` for the manifest. Claude Code will handle this for you if it needs it.
+
+## Configuration
+
+Drop a `.gettext-auto.toml` into any one of these locations (first match wins, no merging):
+
+1. `<project>/.gettext-auto.toml`
+2. `<project>/.claude/.gettext-auto.toml`
+3. `~/.claude/.gettext-auto.toml`
+
+All keys are optional:
+
+```toml
+author_name = "Jane Smith"       # Last-Translator name. "{git}" resolves to `git config user.name`.
+author_email = "jane@acme.com"   # Last-Translator email. "{git}" resolves to `git config user.email`.
+mark_fuzzy = true                # Mark AI-written entries fuzzy so msgfmt forces human review. Default true.
+context = "Technical audience, US English source, keep NVDA untranslated."
+language_team = "French <fr-team@acme.com>"
+report_bugs_to = "bugs@acme.com"
+```
+
+Defaults pull author identity from git config. Set `author_name` / `author_email` to a non-`{git}` value if you don't want your name on AI-generated translations.
 
 ## Roadmap
 

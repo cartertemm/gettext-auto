@@ -1,6 +1,12 @@
 from pathlib import Path
 import pytest
-from gettext_auto.po import load_po, enumerate_pending, write_translation, entry_id
+from gettext_auto.po import (
+    enumerate_pending,
+    entry_id,
+    load_po,
+    update_po_headers,
+    write_translation,
+)
 
 
 def test_load_po(fixtures_dir):
@@ -48,6 +54,62 @@ def test_enumerate_pending_includes_empty_plural_forms(fixtures_dir):
     pending = enumerate_pending(pof)
     assert len(pending) == 1
     assert pending[0].msgid_plural == "%d files"
+
+
+def test_write_translation_respects_mark_fuzzy_false(tmp_path, fixtures_dir):
+    src = fixtures_dir / "python-partial-fr/locale/fr/LC_MESSAGES/messages.po"
+    dst = tmp_path / "fr.po"
+    dst.write_bytes(src.read_bytes())
+    pof = load_po(dst)
+    target = next(e for e in pof if e.msgid == "File")
+    write_translation(target, "Fichier", mark_fuzzy=False)
+    assert target.msgstr == "Fichier"
+    assert "fuzzy" not in target.flags
+
+
+def test_write_translation_mark_fuzzy_false_preserves_existing_fuzzy_flag(tmp_path, fixtures_dir):
+    """An entry that was already fuzzy stays fuzzy even when mark_fuzzy=False."""
+    src = fixtures_dir / "python-partial-fr/locale/fr/LC_MESSAGES/messages.po"
+    dst = tmp_path / "fr.po"
+    dst.write_bytes(src.read_bytes())
+    pof = load_po(dst)
+    # Close is already fuzzy in the fixture.
+    target = next(e for e in pof if e.msgid == "Close")
+    assert "fuzzy" in target.flags
+    write_translation(target, "Fermer", mark_fuzzy=False)
+    assert "fuzzy" in target.flags
+
+
+def test_update_po_headers_sets_only_provided_fields(tmp_path, fixtures_dir):
+    src = fixtures_dir / "python-partial-fr/locale/fr/LC_MESSAGES/messages.po"
+    dst = tmp_path / "fr.po"
+    dst.write_bytes(src.read_bytes())
+    pof = load_po(dst)
+    before = pof.metadata.get("Language-Team")
+    update_po_headers(pof, last_translator="Alice <alice@example.com>")
+    assert pof.metadata["Last-Translator"] == "Alice <alice@example.com>"
+    assert pof.metadata.get("Language-Team") == before
+
+
+def test_update_po_headers_empty_string_does_not_clobber(tmp_path, fixtures_dir):
+    src = fixtures_dir / "python-partial-fr/locale/fr/LC_MESSAGES/messages.po"
+    dst = tmp_path / "fr.po"
+    dst.write_bytes(src.read_bytes())
+    pof = load_po(dst)
+    pof.metadata["Last-Translator"] = "Bob <bob@example.com>"
+    update_po_headers(pof, last_translator="")
+    assert pof.metadata["Last-Translator"] == "Bob <bob@example.com>"
+
+
+def test_update_po_headers_revision_date(tmp_path, fixtures_dir):
+    src = fixtures_dir / "python-partial-fr/locale/fr/LC_MESSAGES/messages.po"
+    dst = tmp_path / "fr.po"
+    dst.write_bytes(src.read_bytes())
+    pof = load_po(dst)
+    update_po_headers(pof, revision_date=True)
+    # Format like "2026-04-21 14:22+0000"
+    assert pof.metadata["PO-Revision-Date"][:4].isdigit()
+    assert "+" in pof.metadata["PO-Revision-Date"] or "-" in pof.metadata["PO-Revision-Date"]
 
 
 def test_write_translation_allows_half_translated_plural(tmp_path, fixtures_dir):

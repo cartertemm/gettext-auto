@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime, timezone
 from pathlib import Path
 import polib
 
@@ -74,12 +75,19 @@ def write_translation(
 	entry: polib.POEntry,
 	msgstr: str,
 	msgstr_plural: list[str] | None = None,
+	mark_fuzzy: bool = True,
 ) -> None:
-	"""Write translation, always marking fuzzy. Refuses to overwrite a clean translation.
+	"""Write translation. Refuses to overwrite a clean translation.
 
 	Symmetric with enumerate_pending: a plural entry is "clean" only if ALL
 	plural forms are non-empty. A half-translated plural is pending and may be
 	overwritten.
+
+	When mark_fuzzy is True (default), the fuzzy flag is set so downstream
+	tooling (msgfmt, translation editors) treats the entry as needing review.
+	When False, the flag is left untouched: existing fuzzy flags are preserved,
+	but new translations land as clean. Opt out only if you have another review
+	gate in place.
 	"""
 	if entry.msgid_plural:
 		plurals = entry.msgstr_plural or {}
@@ -93,5 +101,35 @@ def write_translation(
 		entry.msgstr_plural = {i: s for i, s in enumerate(msgstr_plural)}
 	else:
 		entry.msgstr = msgstr
-	if "fuzzy" not in entry.flags:
+	if mark_fuzzy and "fuzzy" not in entry.flags:
 		entry.flags.append("fuzzy")
+
+
+def _utc_timestamp() -> str:
+	return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M%z")
+
+
+def update_po_headers(
+	pof: polib.POFile,
+	*,
+	last_translator: str | None = None,
+	language_team: str | None = None,
+	report_bugs_to: str | None = None,
+	revision_date: bool = False,
+) -> None:
+	"""Selectively update PO metadata headers.
+
+	Each parameter is a three-way switch:
+	  - None: leave the existing value alone.
+	  - "" (empty string): leave the existing value alone. Empty config values
+	    must not clobber whatever pybabel/msginit wrote.
+	  - non-empty string: overwrite.
+	"""
+	if last_translator:
+		pof.metadata["Last-Translator"] = last_translator
+	if language_team:
+		pof.metadata["Language-Team"] = language_team
+	if report_bugs_to:
+		pof.metadata["Report-Msgid-Bugs-To"] = report_bugs_to
+	if revision_date:
+		pof.metadata["PO-Revision-Date"] = _utc_timestamp()

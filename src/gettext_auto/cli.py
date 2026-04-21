@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 from babel.messages.frontend import CommandLineInterface as BabelCLI
 
+from gettext_auto import config as config_mod
 from gettext_auto import project
 from gettext_auto import po as po_mod
 from gettext_auto import verify as verify_mod
@@ -67,11 +68,13 @@ def scan(lang, cwd, batch, examples_n, po_root):
 	pending = po_mod.enumerate_pending(pof)[:batch]
 	entries = [po_mod.serialize_entry(e) for e in pending]
 	examples = po_mod.clean_translations(pof, examples_n)
+	cfg = config_mod.load_config(Path(cwd))
 	out = {
 		"project": {
 			"source_lang": det["source_lang"] or "en",
 			"target_lang": lang,
 			"plural_rule": po_mod.plural_rule(pof),
+			"context": cfg.context,
 		},
 		"entries": entries,
 		"examples": examples,
@@ -100,8 +103,10 @@ def apply(lang, cwd, input_path, output_path, dry_run, po_root):
 	pof = po_mod.load_po(po_path)
 	nplurals = _parse_nplurals(po_mod.plural_rule(pof))
 	by_id = {po_mod.entry_id(e): e for e in pof}
+	cfg = config_mod.load_config(Path(cwd))
 	entries_out: list[dict] = []
 	summary = {"written_ok": 0, "verification_failed": 0, "msgfmt_warnings": 0}
+	any_written = False
 	for tr in payload["translations"]:
 		eid = tr["id"]
 		entry = by_id.get(eid)
@@ -126,23 +131,36 @@ def apply(lang, cwd, input_path, output_path, dry_run, po_root):
 				]
 				error_comment = "AUTOTRANS-ERROR: " + "; ".join(result.errors)
 				entry.comment = "\n".join(existing_lines + [error_comment]).strip()
-			po_mod.write_translation(entry, msgstr, msgstr_plural=msgstr_plural)
+			po_mod.write_translation(
+				entry, msgstr, msgstr_plural=msgstr_plural, mark_fuzzy=cfg.mark_fuzzy,
+			)
+			any_written = True
+			is_fuzzy = "fuzzy" in entry.flags
 			if result.errors:
 				summary["verification_failed"] += 1
 				entries_out.append({
 					"id": eid, "status": "final-fail", "errors": result.errors,
-					"written": True, "fuzzy": True,
+					"written": True, "fuzzy": is_fuzzy,
 				})
 			else:
 				summary["written_ok"] += 1
 				entries_out.append({
 					"id": eid, "status": "ok", "errors": [],
-					"written": True, "fuzzy": True,
+					"written": True, "fuzzy": is_fuzzy,
 				})
 		except ValueError as e:
 			entries_out.append({"id": eid, "status": "final-fail", "errors": [str(e)],
 								"written": False, "fuzzy": False})
 			summary["verification_failed"] += 1
+
+	if any_written:
+		name, email = config_mod.resolve_author(cfg, Path(cwd))
+		po_mod.update_po_headers(
+			pof,
+			last_translator=config_mod.format_last_translator(name, email),
+			language_team=cfg.language_team,
+			revision_date=True,
+		)
 
 	if not dry_run:
 		tmp = po_path.with_suffix(po_path.suffix + ".tmp")
@@ -212,6 +230,11 @@ def extract(cwd, domain, po_root):
 		os.chdir(old)
 	if code:
 		raise click.ClickException(f"extract failed: {msg}" if msg else f"extract failed for {pot_rel}")
+	cfg = config_mod.load_config(root)
+	if cfg.report_bugs_to and pot_abs.is_file():
+		pof = po_mod.load_po(pot_abs)
+		po_mod.update_po_headers(pof, report_bugs_to=cfg.report_bugs_to)
+		pof.save(str(pot_abs))
 
 
 @main.command("init-po")
@@ -243,6 +266,18 @@ def init_po(lang, cwd, domain, po_root):
 		os.chdir(old)
 	if code:
 		raise click.ClickException(f"init-po failed: {msg}" if msg else f"init-po failed for {po_rel}")
+	cfg = config_mod.load_config(root)
+	name, email = config_mod.resolve_author(cfg, root)
+	last_translator = config_mod.format_last_translator(name, email)
+	if (last_translator or cfg.language_team or cfg.report_bugs_to) and po_abs.is_file():
+		pof = po_mod.load_po(po_abs)
+		po_mod.update_po_headers(
+			pof,
+			last_translator=last_translator,
+			language_team=cfg.language_team,
+			report_bugs_to=cfg.report_bugs_to,
+		)
+		pof.save(str(po_abs))
 
 
 @main.command("update-po")

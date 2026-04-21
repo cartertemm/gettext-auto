@@ -22,7 +22,7 @@ Translate a gettext project one language at a time. All mechanical work goes thr
 
 4. **Translation loop.** Repeat until `scan` returns zero entries:
    a. `gettext-auto scan <lang> --batch 50`.
-   b. Call the model with a system prompt covering: preserve placeholders exactly, match tone, correct plural count. Include `examples` and `entries` from scan output, plus the target `plural_rule`. Emit JSON matching `{"translations": [{"id": "...", "msgstr": "..."}, ...]}`.
+   b. Call the model with a system prompt covering: preserve placeholders exactly, match tone, correct plural count. Include `examples` and `entries` from scan output, plus the target `plural_rule`. If `project.context` is non-empty, include it verbatim as project context for the model. Emit JSON matching `{"translations": [{"id": "...", "msgstr": "..."}, ...]}`.
    c. Pipe the JSON to `gettext-auto apply <lang> --input -`.
    d. No retries. Accumulate counters from the `summary` field.
 
