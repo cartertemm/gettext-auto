@@ -8,11 +8,13 @@ import pytest
 from gettext_auto.config import (
 	CONFIG_FILENAME,
 	Config,
+	DEFAULT_TEMPLATE,
 	GIT_PLACEHOLDER,
 	format_last_translator,
 	load_config,
 	resolve_author,
 	search_paths,
+	write_default_config,
 )
 
 
@@ -183,3 +185,46 @@ def test_format_last_translator_email_only():
 
 def test_format_last_translator_both_empty():
 	assert format_last_translator("", "") == ""
+
+
+def test_write_default_config_creates_file(tmp_path):
+	target = tmp_path / CONFIG_FILENAME
+	write_default_config(target)
+	assert target.read_text(encoding="utf-8") == DEFAULT_TEMPLATE
+
+
+def test_write_default_config_creates_parent_dirs(tmp_path):
+	target = tmp_path / "nested" / ".claude" / CONFIG_FILENAME
+	write_default_config(target)
+	assert target.is_file()
+
+
+def test_write_default_config_refuses_existing(tmp_path):
+	target = tmp_path / CONFIG_FILENAME
+	target.write_text("existing", encoding="utf-8")
+	with pytest.raises(FileExistsError):
+		write_default_config(target)
+	assert target.read_text(encoding="utf-8") == "existing"
+
+
+def test_write_default_config_force_overwrites(tmp_path):
+	target = tmp_path / CONFIG_FILENAME
+	target.write_text("existing", encoding="utf-8")
+	write_default_config(target, force=True)
+	assert target.read_text(encoding="utf-8") == DEFAULT_TEMPLATE
+
+
+def test_default_template_loads_as_default_config(tmp_path):
+	"""A freshly written template (all keys commented) must produce defaults."""
+	target = tmp_path / CONFIG_FILENAME
+	write_default_config(target)
+	cfg = load_config(tmp_path, home=tmp_path / "home")
+	# source_path points to the template file, but all values should equal defaults.
+	assert cfg.source_path == target
+	defaults = Config()
+	assert cfg.author_name == defaults.author_name
+	assert cfg.author_email == defaults.author_email
+	assert cfg.mark_fuzzy == defaults.mark_fuzzy
+	assert cfg.context == defaults.context
+	assert cfg.language_team == defaults.language_team
+	assert cfg.report_bugs_to == defaults.report_bugs_to

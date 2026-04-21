@@ -21,6 +21,34 @@ CONFIG_FILENAME = ".gettext-auto.toml"
 GIT_PLACEHOLDER = "{git}"
 
 
+DEFAULT_TEMPLATE = """\
+# gettext-auto configuration.
+# All keys are optional; uncomment to override a default.
+# First-match-wins across: <cwd>/.gettext-auto.toml,
+# <cwd>/.claude/.gettext-auto.toml, ~/.claude/.gettext-auto.toml.
+
+# Last-Translator identity written to PO headers.
+# The sentinel "{git}" resolves at write time via:
+#   `git config user.name`  /  `git config user.email`
+# Replace with literal strings if you do not want your name on AI output.
+# author_name = "{git}"
+# author_email = "{git}"
+
+# Mark AI-written entries as fuzzy so msgfmt and translation tools
+# surface them for human review before shipping. Leave on unless you
+# have another review gate in place.
+# mark_fuzzy = true
+
+# One-paragraph project description fed to the model during translation.
+# Raises quality substantially for domain-specific projects.
+# context = "NVDA is a Windows screen reader; audience is technical."
+
+# PO header metadata.
+# language_team = "French <fr-team@example.com>"
+# report_bugs_to = "bugs@example.com"
+"""
+
+
 @dataclass
 class Config:
 	author_name: str = GIT_PLACEHOLDER
@@ -94,6 +122,14 @@ def resolve_author(cfg: Config, cwd: Path) -> tuple[str, str]:
 	if email == GIT_PLACEHOLDER:
 		email = _git_config_value(cwd, "user.email")
 	return name, email
+
+
+def write_default_config(path: Path, force: bool = False) -> None:
+	"""Write a commented template to `path`. Refuses to overwrite unless force=True."""
+	if path.exists() and not force:
+		raise FileExistsError(str(path))
+	path.parent.mkdir(parents=True, exist_ok=True)
+	path.write_text(DEFAULT_TEMPLATE, encoding="utf-8")
 
 
 def format_last_translator(name: str, email: str) -> str:

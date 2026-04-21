@@ -96,6 +96,8 @@ Drop a `.gettext-auto.toml` into any one of these locations (first match wins, n
 2. `<project>/.claude/.gettext-auto.toml`
 3. `~/.claude/.gettext-auto.toml`
 
+Run `gettext-auto init-config` to scaffold a commented template in the current directory, or `gettext-auto init-config --global` to write one to `~/.claude/`.
+
 All keys are optional:
 
 ```toml

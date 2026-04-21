@@ -353,6 +353,28 @@ def compile_cmd(cwd, domain, po_root):
 		raise click.ClickException(f"compile failed: {detail}")
 
 
+@main.command("init-config")
+@click.option("--cwd", type=click.Path(exists=True, file_okay=False), default=".")
+@click.option("--global", "global_", is_flag=True, default=False,
+			  help=f"Write to ~/.claude/{config_mod.CONFIG_FILENAME} instead of <cwd>.")
+@click.option("--force", is_flag=True, default=False,
+			  help="Overwrite an existing config file.")
+def init_config(cwd, global_, force):
+	"""Write a commented .gettext-auto.toml template so keys are discoverable."""
+	if global_:
+		home = Path(os.environ.get("USERPROFILE") or os.environ.get("HOME") or str(Path.home()))
+		target = home / ".claude" / config_mod.CONFIG_FILENAME
+	else:
+		target = Path(cwd) / config_mod.CONFIG_FILENAME
+	try:
+		config_mod.write_default_config(target, force=force)
+	except FileExistsError:
+		raise click.ClickException(
+			f"{target} already exists. Re-run with --force to overwrite."
+		)
+	click.echo(f"wrote {target}")
+
+
 @main.command("install-skill")
 def install_skill_cmd():
 	"""Install the skill and /translate command into ~/.claude/."""
