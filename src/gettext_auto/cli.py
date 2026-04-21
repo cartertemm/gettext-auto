@@ -9,7 +9,6 @@ from babel.messages.frontend import CommandLineInterface as BabelCLI
 
 from gettext_auto import project
 from gettext_auto import po as po_mod
-from gettext_auto import scaffold as scaffold_mod
 from gettext_auto import verify as verify_mod
 from gettext_auto import install as install_mod
 from gettext_auto import nvda as nvda_mod
@@ -158,25 +157,6 @@ def apply(lang, cwd, input_path, output_path, dry_run, po_root):
 		click.echo(text)
 	else:
 		Path(output_path).write_text(text, encoding="utf-8")
-
-
-@main.command()
-@click.option("--level", type=click.Choice(["layout"]), default="layout",
-			  help="v2 supports 'layout' only.")
-@click.option("--domain", default="messages")
-@click.option("--source-lang", default=None)
-@click.option("--cwd", type=click.Path(exists=True, file_okay=False), default=".")
-@click.option("--write", is_flag=True, default=False)
-def scaffold(level, domain, source_lang, cwd, write):
-	"""Scaffold gettext layout into the project."""
-	root = Path(cwd)
-	src = source_lang or project.detect(root).get("source_lang") or "en"
-	plan = scaffold_mod.plan_layout(root, domain=domain, source_lang=src)
-	if not write:
-		click.echo(plan.preview())
-		return
-	plan.write(root)
-	click.echo(json.dumps({"written": sorted(plan.files)}, indent=2))
 
 
 def _run_pybabel(argv: list[str]) -> tuple[int, str]:
@@ -345,6 +325,14 @@ def install_skill_cmd():
 	home = Path(os.environ.get("USERPROFILE") or os.environ.get("HOME") or str(Path.home()))
 	written = install_mod.install(source_root=source_root, target_home=home)
 	click.echo(json.dumps({"written": written}, indent=2))
+
+
+@main.command("uninstall-skill")
+def uninstall_skill_cmd():
+	"""Remove the skill and /translate command from ~/.claude/."""
+	home = Path(os.environ.get("USERPROFILE") or os.environ.get("HOME") or str(Path.home()))
+	removed = install_mod.uninstall(target_home=home)
+	click.echo(json.dumps({"removed": removed}, indent=2))
 
 
 @main.group()

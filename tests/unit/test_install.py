@@ -1,5 +1,5 @@
 from pathlib import Path
-from gettext_auto.install import install, locate_source_root
+from gettext_auto.install import install, locate_source_root, uninstall
 
 
 def test_install_copies_skill_and_command(tmp_path):
@@ -15,6 +15,31 @@ def test_install_copies_skill_and_command(tmp_path):
 
 	assert (home / ".claude/skills/gettext-auto/SKILL.md").read_text(encoding="utf-8") == "skill body"
 	assert (home / ".claude/commands/translate.md").read_text(encoding="utf-8") == "slash body"
+
+
+def test_uninstall_removes_skill_and_command(tmp_path):
+	home = tmp_path / "home"
+	home.mkdir()
+	pkg = tmp_path / "pkg"
+	(pkg / "skills/gettext-auto").mkdir(parents=True)
+	(pkg / "skills/gettext-auto/SKILL.md").write_text("skill body", encoding="utf-8")
+	(pkg / "commands").mkdir()
+	(pkg / "commands/translate.md").write_text("slash body", encoding="utf-8")
+
+	install(source_root=pkg, target_home=home)
+	removed = uninstall(target_home=home)
+
+	assert not (home / ".claude/skills/gettext-auto").exists()
+	assert not (home / ".claude/commands/translate.md").exists()
+	assert ".claude/skills/gettext-auto/SKILL.md" in [p.replace("\\", "/") for p in removed]
+	assert ".claude/commands/translate.md" in [p.replace("\\", "/") for p in removed]
+
+
+def test_uninstall_is_idempotent(tmp_path):
+	home = tmp_path / "home"
+	home.mkdir()
+	removed = uninstall(target_home=home)
+	assert removed == []
 
 
 def test_locate_source_root_prefers_packaged_assets(tmp_path, monkeypatch):

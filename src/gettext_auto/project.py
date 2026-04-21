@@ -36,7 +36,6 @@ class DetectResult(TypedDict):
 	gettext_status: str          # "not-integrated" | "integrated"
 	pot_path: str | None
 	po_files: dict[str, str]
-	scaffold_needed: bool
 	layout: LayoutInfo
 	nvda: nvda_mod.NvdaInfo | None
 
@@ -128,8 +127,8 @@ def _infer_layout(root: Path, po_files: dict[str, str], pot_path: str | None) ->
 	if pot_path:
 		pot_parent = (root / pot_path).parent
 		po_base = str(pot_parent.relative_to(root)).replace("\\", "/")
-		# A .pot sitting directly under a "locale" dir is the scaffold convention:
-		# assume standard layout so init-po lands at locale/<lang>/LC_MESSAGES/.
+		# A .pot sitting directly under a "locale" dir suggests the standard
+		# layout, so init-po lands at locale/<lang>/LC_MESSAGES/.
 		style = "standard" if pot_parent.name == "locale" else "flat"
 		return {"style": style, "po_base": po_base, "domain": domain}
 	# Neither: standard-layout default for greenfield projects.
@@ -165,7 +164,6 @@ def detect(root: Path | str, po_root: Path | str | None = None) -> DetectResult:
 		"gettext_status": "integrated" if integrated else "not-integrated",
 		"pot_path": pot_rel,
 		"po_files": po_files,
-		"scaffold_needed": not integrated,
 		"layout": layout,
 		"nvda": nvda_mod.detect(root),
 	}

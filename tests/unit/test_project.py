@@ -7,7 +7,6 @@ def test_detects_python_no_gettext(fixtures_dir):
 	result = detect(fixtures_dir / "python-no-gettext")
 	assert result["project_type"] == "python"
 	assert result["gettext_status"] == "not-integrated"
-	assert result["scaffold_needed"] is True
 	assert result["po_files"] == {}
 
 

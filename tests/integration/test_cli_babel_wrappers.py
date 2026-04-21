@@ -11,10 +11,23 @@ def _run(*args, cwd):
 
 
 def test_full_babel_cycle(tmp_path, fixtures_dir):
-	# Start with no-gettext fixture, scaffold layout, add a marked string, run the cycle.
+	# Start with no-gettext fixture, write a minimal standard layout by hand,
+	# add a marked string, and run the extract -> init-po -> update-po -> compile cycle.
 	proj = tmp_path / "py"
 	shutil.copytree(fixtures_dir / "python-no-gettext", proj)
-	_run("scaffold", "--level", "layout", "--write", cwd=proj)
+	(proj / "babel.cfg").write_text("[python: **.py]\n", encoding="utf-8")
+	(proj / "locale").mkdir(exist_ok=True)
+	(proj / "locale/messages.pot").write_text(
+		'# Translations template.\n'
+		'#\n'
+		'msgid ""\n'
+		'msgstr ""\n'
+		'"Project-Id-Version: messages 0.1\\n"\n'
+		'"Content-Type: text/plain; charset=UTF-8\\n"\n'
+		'"Content-Transfer-Encoding: 8bit\\n"\n'
+		'"Language: en\\n"\n',
+		encoding="utf-8",
+	)
 	# Add a translatable string to the source.
 	(proj / "app.py").write_text(
 		"def greet(): return _('Hello')\n", encoding="utf-8"
@@ -57,8 +70,7 @@ def test_flat_layout_babel_cycle(tmp_path, fixtures_dir):
 	proj = tmp_path / "py"
 	shutil.copytree(fixtures_dir / "python-flat-layout", proj)
 
-	# Write a babel.cfg so extract can run. Scaffold only creates one for
-	# new projects, so author one directly for this pre-existing flat project.
+	# Write a babel.cfg so extract can run.
 	(proj / "babel.cfg").write_text("[python: **.py]\n", encoding="utf-8")
 	# Add a translatable string somewhere the extractor will find it.
 	(proj / "app.py").write_text(

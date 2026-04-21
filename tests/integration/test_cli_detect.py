@@ -25,7 +25,8 @@ def test_detect_partial_fr(fixtures_dir):
 def test_detect_no_gettext(fixtures_dir):
 	r = _run("detect", cwd=fixtures_dir / "python-no-gettext")
 	data = json.loads(r.stdout)
-	assert data["scaffold_needed"] is True
+	assert data["gettext_status"] == "not-integrated"
+	assert data["po_files"] == {}
 
 
 def test_detect_cwd_flag(fixtures_dir, tmp_path):

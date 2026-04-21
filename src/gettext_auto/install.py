@@ -1,4 +1,4 @@
-"""install-skill command backend."""
+"""install-skill and uninstall-skill command backend."""
 from __future__ import annotations
 
 import shutil
@@ -48,3 +48,19 @@ def install(source_root: Path, target_home: Path) -> list[str]:
 	shutil.copy2(src_cmd, dst_cmd)
 	written.append(str(dst_cmd.relative_to(target_home)))
 	return written
+
+
+def uninstall(target_home: Path) -> list[str]:
+	"""Remove skill files and slash command from ~/.claude/. Returns removed paths."""
+	removed: list[str] = []
+	dst_skill = target_home / ".claude" / SKILL_DIR
+	if dst_skill.exists():
+		for p in dst_skill.rglob("*"):
+			if p.is_file():
+				removed.append(str(p.relative_to(target_home)))
+		shutil.rmtree(dst_skill)
+	dst_cmd = target_home / ".claude" / COMMANDS_DIR / "translate.md"
+	if dst_cmd.exists():
+		dst_cmd.unlink()
+		removed.append(str(dst_cmd.relative_to(target_home)))
+	return removed

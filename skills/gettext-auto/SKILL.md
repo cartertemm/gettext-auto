@@ -14,8 +14,8 @@ Translate a gettext project one language at a time. All mechanical work goes thr
 2. **Run `gettext-auto detect`.** Print a one-line summary of project_type, gettext_status, and the target language state. If `pot_path` or `po_files` point somewhere unexpected (a vendored dependency, a build output, an unrelated subtree), ask the user to confirm the canonical location and re-run every `gettext-auto` invocation with `--po-root <dir>` to scope discovery.
 
 3. **Branch on state:**
-   - `gettext_status == "not-integrated"`: run `gettext-auto scaffold --level layout` (preview), ask to confirm, run with `--write`, then stop and tell the user to wrap strings in `_()` and re-run `/translate <lang>`.
-   - `detect.source_lang == <lang>`: hard error. "Source and target match — did you mean a different language?"
+   - `gettext_status == "not-integrated"`: hard error. Tell the user no `.pot` or `.po` files were found, that gettext has to be set up in the project first (a `.pot` extracted from source, strings wrapped in `_()`), and that they should re-run `/translate <lang>` once that's done.
+   - `detect.source_lang == <lang>`: hard error. "Source and target match. Did you mean a different language?"
    - `<lang>` not in `po_files`: run `gettext-auto init-po <lang>` to create the catalog, then re-run `gettext-auto detect` and proceed with the translation loop. The POT must exist first; if not, fall back to the "not-integrated" branch.
    - Nothing pending: "Everything up to date." Done.
    - Otherwise: enter the translation loop.
@@ -38,5 +38,4 @@ Translate a gettext project one language at a time. All mechanical work goes thr
 - Never touch a non-fuzzy entry.
 - Never clear `fuzzy` flags.
 - Never commit to git. Never modify project README or CI.
-- Never call the CLI with `--write` on scaffold without showing the preview first.
 - No retries on verification failure. `apply` writes `#. AUTOTRANS-ERROR:` comments so `msgfmt` catches them.
