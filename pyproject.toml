@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gettext-auto"
+version = "0.1.0"
+description = "AI-assisted gettext translation skill for Claude Code"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{name = "Carter Temm", email = "cartertemm@gmail.com"}]
+dependencies = [
+    "polib>=1.2.0",
+    "babel>=2.14",
+    "click>=8.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "pytest-snapshot>=0.9",
+    "configobj>=5.0",
+]
+nvda = [
+    "configobj>=5.0",
+]
+
+[project.scripts]
+gettext-auto = "gettext_auto.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gettext_auto"]
+
+# Bundle skill prompt and slash command into the wheel under
+# gettext_auto/_assets/ so install-skill works after pipx/pip install.
+[tool.hatch.build.targets.wheel.force-include]
+"skills" = "src/gettext_auto/_assets/skills"
+"commands" = "src/gettext_auto/_assets/commands"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

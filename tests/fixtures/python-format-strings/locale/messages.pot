@@ -1,0 +1,24 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: python-format-strings 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"MIME-Version: 1.0\n"
+
+msgid "Hello, %s!"
+msgstr ""
+
+msgid "%(name)s logged in"
+msgstr ""
+
+msgid "Items: {0}"
+msgstr ""
+
+msgid "Open {name!r}"
+msgstr ""
+
+msgid "100%% done"
+msgstr ""
+
+msgid "<b>Warning</b>"
+msgstr ""

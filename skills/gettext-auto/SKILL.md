@@ -1,0 +1,42 @@
+---
+name: gettext-auto
+description: AI-assisted gettext translation. Use when the user types /translate <lang> or asks to translate a gettext-based project.
+---
+
+# gettext-auto
+
+Translate a gettext project one language at a time. All mechanical work goes through the `gettext-auto` CLI; only translation itself uses the model.
+
+## Protocol
+
+1. **Parse the argument.** Accept BCP-47 / ISO codes (`en`, `fr`, `pt_BR`, `zh_Hans`). Reject friendly names ("french", "mandarin") with a suggested code. Confirm the code back to the user.
+
+2. **Run `gettext-auto detect`.** Print a one-line summary of project_type, gettext_status, and the target language state. If `pot_path` or `po_files` point somewhere unexpected (a vendored dependency, a build output, an unrelated subtree), ask the user to confirm the canonical location and re-run every `gettext-auto` invocation with `--po-root <dir>` to scope discovery.
+
+3. **Branch on state:**
+   - `gettext_status == "not-integrated"`: run `gettext-auto scaffold --level layout` (preview), ask to confirm, run with `--write`, then stop and tell the user to wrap strings in `_()` and re-run `/translate <lang>`.
+   - `detect.source_lang == <lang>`: hard error. "Source and target match — did you mean a different language?"
+   - `<lang>` not in `po_files`: run `gettext-auto init-po <lang>` to create the catalog, then re-run `gettext-auto detect` and proceed with the translation loop. The POT must exist first; if not, fall back to the "not-integrated" branch.
+   - Nothing pending: "Everything up to date." Done.
+   - Otherwise: enter the translation loop.
+
+4. **Translation loop.** Repeat until `scan` returns zero entries:
+   a. `gettext-auto scan <lang> --batch 50`.
+   b. Call the model with a system prompt covering: preserve placeholders exactly, match tone, correct plural count. Include `examples` and `entries` from scan output, plus the target `plural_rule`. Emit JSON matching `{"translations": [{"id": "...", "msgstr": "..."}, ...]}`.
+   c. Pipe the JSON to `gettext-auto apply <lang> --input -`.
+   d. No retries. Accumulate counters from the `summary` field.
+
+5. **NVDA add-on extension.** If `detect.nvda` is non-null, after the gettext loop reaches zero pending, run one extra pass for the add-on manifest:
+   a. `gettext-auto nvda scan <lang>`. Emits entries for any of `summary` / `description` that have a source string but no translation yet.
+   b. If entries are empty, skip.
+   c. Otherwise translate with the same prompt shape as step 4b and pipe to `gettext-auto nvda apply <lang> --input -`. No fuzzy flag is used; the write is direct. Accumulate the counters into the same end-of-run summary.
+
+6. **Print the end-of-run summary** using the counters. Tell the user to review translations and commit. Do not compile .mo unless they ask.
+
+## What you do NOT do
+
+- Never touch a non-fuzzy entry.
+- Never clear `fuzzy` flags.
+- Never commit to git. Never modify project README or CI.
+- Never call the CLI with `--write` on scaffold without showing the preview first.
+- No retries on verification failure. `apply` writes `#. AUTOTRANS-ERROR:` comments so `msgfmt` catches them.

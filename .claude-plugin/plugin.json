@@ -1,0 +1,9 @@
+{
+  "name": "gettext-auto",
+  "version": "0.1.0",
+  "description": "AI-assisted gettext translation for Claude Code.",
+  "author": "Carter Temm",
+  "license": "MIT",
+  "skills": ["skills/gettext-auto/SKILL.md"],
+  "commands": ["commands/translate.md"]
+}
