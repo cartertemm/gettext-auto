@@ -360,7 +360,7 @@ def compile_cmd(cwd, domain, po_root):
 @click.option("--force", is_flag=True, default=False,
 			  help="Overwrite an existing config file.")
 def init_config(cwd, global_, force):
-	"""Write a commented .gettext-auto.toml template so keys are discoverable."""
+	"""Drop a commented .gettext-auto.toml here so the options are easy to find."""
 	if global_:
 		home = Path(os.environ.get("USERPROFILE") or os.environ.get("HOME") or str(Path.home()))
 		target = home / ".claude" / config_mod.CONFIG_FILENAME

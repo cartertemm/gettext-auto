@@ -83,11 +83,11 @@ def write_translation(
 	plural forms are non-empty. A half-translated plural is pending and may be
 	overwritten.
 
-	When mark_fuzzy is True (default), the fuzzy flag is set so downstream
-	tooling (msgfmt, translation editors) treats the entry as needing review.
-	When False, the flag is left untouched: existing fuzzy flags are preserved,
-	but new translations land as clean. Opt out only if you have another review
-	gate in place.
+	mark_fuzzy controls what happens on the way in. True (the default) tacks
+	the fuzzy flag on so msgfmt and translation editors know the entry still
+	needs a human. False skips that. An already-fuzzy entry stays fuzzy
+	either way. Only turn this off if you're reviewing translations some
+	other way.
 	"""
 	if entry.msgid_plural:
 		plurals = entry.msgstr_plural or {}
@@ -117,13 +117,12 @@ def update_po_headers(
 	report_bugs_to: str | None = None,
 	revision_date: bool = False,
 ) -> None:
-	"""Selectively update PO metadata headers.
+	"""Patch the PO metadata headers in place.
 
-	Each parameter is a three-way switch:
-	  - None: leave the existing value alone.
-	  - "" (empty string): leave the existing value alone. Empty config values
-	    must not clobber whatever pybabel/msginit wrote.
-	  - non-empty string: overwrite.
+	A non-empty string overwrites. None or "" leaves the existing value
+	alone. The empty-string case is the one that matters: unset config keys
+	come through as "", and we don't want a missing config value to wipe
+	out whatever pybabel or msginit already wrote into the header.
 	"""
 	if last_translator:
 		pof.metadata["Last-Translator"] = last_translator

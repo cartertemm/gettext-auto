@@ -1,13 +1,15 @@
-"""User configuration loaded from .gettext-auto.toml.
+"""User config loader for .gettext-auto.toml.
 
-Search order (first match wins, no merging):
+Checks three places in this order and uses whichever one turns up first:
   1. <cwd>/.gettext-auto.toml
   2. <cwd>/.claude/.gettext-auto.toml
   3. ~/.claude/.gettext-auto.toml
 
-Values default to a Config with empty strings and mark_fuzzy=True. The
-author_name/author_email fields default to the sentinel "{git}", which resolves
-to `git config user.name` / `user.email` at use time via resolve_author().
+No file means defaults. author_name and author_email default to the literal
+string "{git}", which gets expanded to `git config user.name` / `user.email`
+on demand by resolve_author. The indirection is deliberate: a missing git
+install, or one that's never been configured, shouldn't crash config loading.
+It should just mean we skip those PO headers when we write.
 """
 from __future__ import annotations
 
@@ -22,28 +24,34 @@ GIT_PLACEHOLDER = "{git}"
 
 
 DEFAULT_TEMPLATE = """\
-# gettext-auto configuration.
-# All keys are optional; uncomment to override a default.
-# First-match-wins across: <cwd>/.gettext-auto.toml,
-# <cwd>/.claude/.gettext-auto.toml, ~/.claude/.gettext-auto.toml.
+# gettext-auto config.
+#
+# Every key below is optional and commented out. Uncomment the ones
+# you care about and leave the rest. Files are checked in this order,
+# first match wins:
+#   <cwd>/.gettext-auto.toml
+#   <cwd>/.claude/.gettext-auto.toml
+#   ~/.claude/.gettext-auto.toml
 
-# Last-Translator identity written to PO headers.
-# The sentinel "{git}" resolves at write time via:
-#   `git config user.name`  /  `git config user.email`
-# Replace with literal strings if you do not want your name on AI output.
+# Goes into the Last-Translator header of the .po files we write.
+# "{git}" is a placeholder that reads `git config user.name` or
+# `user.email` when we need it, so the git identity is the default.
+# Set a literal string (a project email, a bot account, whatever)
+# if you'd rather not be the one listed on AI output.
 # author_name = "{git}"
 # author_email = "{git}"
 
-# Mark AI-written entries as fuzzy so msgfmt and translation tools
-# surface them for human review before shipping. Leave on unless you
-# have another review gate in place.
+# true (the default): new translations land as fuzzy so msgfmt won't
+# compile the .po until a human clears them. false: they land clean.
+# Don't flip this off unless you have another review step.
 # mark_fuzzy = true
 
-# One-paragraph project description fed to the model during translation.
-# Raises quality substantially for domain-specific projects.
-# context = "NVDA is a Windows screen reader; audience is technical."
+# Short project description passed to the model. Makes a real difference
+# on domain-specific work where the same word means different things in
+# different contexts.
+# context = "NVDA is a Windows screen reader; audience is blind developers."
 
-# PO header metadata.
+# Standard .po header fields.
 # language_team = "French <fr-team@example.com>"
 # report_bugs_to = "bugs@example.com"
 """
@@ -69,9 +77,10 @@ def search_paths(cwd: Path, home: Path) -> list[Path]:
 
 
 def load_config(cwd: Path, home: Path | None = None) -> Config:
-	"""Return the first config found, or defaults if none exist.
+	"""Return the first config found. Nothing merges.
 
-	Unknown keys in the file are ignored. Missing keys fall back to defaults.
+	Unknown keys are dropped on the floor so adding options later doesn't
+	break an older CLI reading a newer config file.
 	"""
 	if home is None:
 		home = Path.home()
@@ -110,10 +119,11 @@ def _git_config_value(cwd: Path, key: str) -> str:
 
 
 def resolve_author(cfg: Config, cwd: Path) -> tuple[str, str]:
-	"""Substitute the {git} placeholder with local git config values.
+	"""Expand the "{git}" placeholder by shelling out to `git config`.
 
-	Returns (name, email). Either may be empty if git is unavailable or the
-	relevant key is unset.
+	Either return value can come back empty (no git on the box, or the key
+	isn't set). Callers should treat an empty string as "skip this header"
+	rather than an error.
 	"""
 	name = cfg.author_name
 	email = cfg.author_email
@@ -125,7 +135,11 @@ def resolve_author(cfg: Config, cwd: Path) -> tuple[str, str]:
 
 
 def write_default_config(path: Path, force: bool = False) -> None:
-	"""Write a commented template to `path`. Refuses to overwrite unless force=True."""
+	"""Write the commented template at `path`.
+
+	Bails out with FileExistsError if something's already there. Pass
+	force=True to clobber it anyway.
+	"""
 	if path.exists() and not force:
 		raise FileExistsError(str(path))
 	path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,7 +147,7 @@ def write_default_config(path: Path, force: bool = False) -> None:
 
 
 def format_last_translator(name: str, email: str) -> str:
-	"""Render a Last-Translator value. Empty string if both inputs are empty."""
+	"""Build a Last-Translator header value. Empty when both inputs are."""
 	if not name and not email:
 		return ""
 	if name and email:

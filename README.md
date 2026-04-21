@@ -90,26 +90,26 @@ If your project is an NVDA add-on, you want to use `gettext-auto nvda scan <lang
 
 ## Configuration
 
-Drop a `.gettext-auto.toml` into any one of these locations (first match wins, no merging):
+If the defaults don't suit you, drop a `.gettext-auto.toml` somewhere gettext-auto can find it. It checks three places in this order and uses whichever one turns up first:
 
 1. `<project>/.gettext-auto.toml`
 2. `<project>/.claude/.gettext-auto.toml`
 3. `~/.claude/.gettext-auto.toml`
 
-Run `gettext-auto init-config` to scaffold a commented template in the current directory, or `gettext-auto init-config --global` to write one to `~/.claude/`.
+Running `gettext-auto init-config` writes a commented template into the current directory so you can see what's available. Add `--global` to write it under `~/.claude/` instead.
 
-All keys are optional:
+Every key is optional:
 
 ```toml
-author_name = "Jane Smith"       # Last-Translator name. "{git}" resolves to `git config user.name`.
-author_email = "jane@acme.com"   # Last-Translator email. "{git}" resolves to `git config user.email`.
-mark_fuzzy = true                # Mark AI-written entries fuzzy so msgfmt forces human review. Default true.
+author_name = "Jane Smith"       # Name on the Last-Translator header. "{git}" reads `git config user.name`.
+author_email = "jane@acme.com"   # Same idea. "{git}" reads `git config user.email`.
+mark_fuzzy = true                # Mark every AI translation fuzzy so msgfmt won't compile until a human signs off. Keep this on.
 context = "Technical audience, US English source, keep NVDA untranslated."
 language_team = "French <fr-team@acme.com>"
 report_bugs_to = "bugs@acme.com"
 ```
 
-Defaults pull author identity from git config. Set `author_name` / `author_email` to a non-`{git}` value if you don't want your name on AI-generated translations.
+Out of the box your git identity goes into the Last-Translator header, which is usually what you want. If you'd rather not have your name attached to machine output, point `author_name` and `author_email` at a project email or bot account before running.
 
 ## Roadmap
 
