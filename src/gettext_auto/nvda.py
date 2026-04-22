@@ -1,9 +1,4 @@
-"""NVDA add-on manifest translation.
-
-Isolated from the gettext flow. Detection uses pathlib only (no deps);
-scan/apply require configobj via the optional 'nvda' extra:
-  pip install gettext-auto[nvda]
-"""
+"""NVDA add-on manifest translation."""
 from __future__ import annotations
 
 from pathlib import Path

@@ -28,21 +28,19 @@ You'll need [uv](https://docs.astral.sh/uv/getting-started/installation/) and [C
 From within Claude Code, paste something like:
 
 ```
-Install gettext-auto from https://github.com/cartertemm/gettext-auto by cloning it, running `uv tool install .` in the clone, and then `gettext-auto install-skill`.
+Install gettext-auto from https://github.com/cartertemm/gettext-auto by running `uv tool install git+https://github.com/cartertemm/gettext-auto`, and then `gettext-auto install-skill`.
 ```
 
 Or do it yourself:
 
 ```bash
-git clone https://github.com/cartertemm/gettext-auto
-cd gettext-auto
-uv tool install .
+uv tool install git+https://github.com/cartertemm/gettext-auto
 ```
 
 If you plan to translate NVDA add-ons, you'll need configobj. Install the extra instead so the manifest commands work:
 
 ```bash
-uv tool install ".[nvda]"
+uv tool install "gettext-auto[nvda] @ git+https://github.com/cartertemm/gettext-auto"
 ```
 
 finally, run:
