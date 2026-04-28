@@ -3,7 +3,7 @@
 Welcome to gettext-auto!
 This is a [Claude Code](https://www.anthropic.com/claude-code) skill that translates gettext-based projects into different languages using AI.
 
-Most software is written in English, yet around 75% of people browsing the web don't use English as their native language. If you've ever tried to localize a codebase, you know it's a slog. This project was built on three beliefs:
+Most software is written in English, yet [around 75% of people browsing the web don't use English as their native language](https://parkmagazineny.com/75-of-internet-users-are-non-english-speakers-why-startups-ignoring-multilingual-growth-are-falling-behind/). If you've ever tried to localize a codebase, you know it's a slog. This project was built on three beliefs:
 
 - A buggy translation is better than no translation at all.
 - Language models can move content between languages with reasonable accuracy.
