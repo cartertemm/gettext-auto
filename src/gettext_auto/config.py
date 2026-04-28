@@ -54,7 +54,43 @@ DEFAULT_TEMPLATE = """\
 # Standard .po header fields.
 # language_team = "French <fr-team@example.com>"
 # report_bugs_to = "bugs@example.com"
+
+# Markdown / doc file translation. Each [[translate_files]] entry maps a
+# glob of source files to a target path template. {source} and {target}
+# get substituted with the language codes. {relpath} is the wildcard
+# portion of the match, so a match at doc/en/guide/install.md against
+# "doc/{source}/**/*.md" has {relpath} = "guide/install.md". Listing the
+# entry below (uncommented) would mirror that into doc/<target>/guide/install.md.
+# Existing target files are left alone; run `gettext-auto files scan <lang> --force`
+# to regenerate.
+#
+# [[translate_files]]
+# source = "doc/{source}/**/*.md"
+# target = "doc/{target}/{relpath}"
 """
+
+
+@dataclass
+class TranslateFilesEntry:
+	source: str
+	target: str
+
+	def validate(self) -> list[str]:
+		"""Return a list of human-readable validation errors. Empty = valid."""
+		errs: list[str] = []
+		if not isinstance(self.source, str) or not self.source:
+			errs.append("source must be a non-empty string")
+		if not isinstance(self.target, str) or not self.target:
+			errs.append("target must be a non-empty string")
+		if isinstance(self.target, str) and "{target}" not in self.target:
+			errs.append(f"target template must contain {{target}}: {self.target!r}")
+		if isinstance(self.source, str) and isinstance(self.target, str):
+			has_wildcards = any(ch in self.source for ch in "*?[")
+			if "{relpath}" in self.target and not has_wildcards:
+				errs.append(
+					f"target references {{relpath}} but source {self.source!r} has no wildcards"
+				)
+		return errs
 
 
 @dataclass
@@ -65,6 +101,7 @@ class Config:
 	context: str = ""
 	language_team: str = ""
 	report_bugs_to: str = ""
+	translate_files: list[TranslateFilesEntry] = field(default_factory=list)
 	source_path: Path | None = field(default=None, compare=False)
 
 
@@ -97,9 +134,28 @@ def load_config(cwd: Path, home: Path | None = None) -> Config:
 			context=data.get("context", defaults.context),
 			language_team=data.get("language_team", defaults.language_team),
 			report_bugs_to=data.get("report_bugs_to", defaults.report_bugs_to),
+			translate_files=_parse_translate_files(data.get("translate_files", [])),
 			source_path=path,
 		)
 	return Config()
+
+
+def _parse_translate_files(raw: object) -> list[TranslateFilesEntry]:
+	"""Parse the [[translate_files]] array-of-tables. Unknown keys are ignored."""
+	if not isinstance(raw, list):
+		return []
+	entries: list[TranslateFilesEntry] = []
+	for i, item in enumerate(raw):
+		if not isinstance(item, dict):
+			raise ValueError(f"translate_files[{i}] must be a table, got {type(item).__name__}")
+		source = item.get("source", "")
+		target = item.get("target", "")
+		entry = TranslateFilesEntry(source=source, target=target)
+		errs = entry.validate()
+		if errs:
+			raise ValueError(f"translate_files[{i}]: " + "; ".join(errs))
+		entries.append(entry)
+	return entries
 
 
 def _git_config_value(cwd: Path, key: str) -> str:

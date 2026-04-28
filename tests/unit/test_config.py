@@ -10,6 +10,7 @@ from gettext_auto.config import (
 	Config,
 	DEFAULT_TEMPLATE,
 	GIT_PLACEHOLDER,
+	TranslateFilesEntry,
 	format_last_translator,
 	load_config,
 	resolve_author,
@@ -212,6 +213,54 @@ def test_write_default_config_force_overwrites(tmp_path):
 	target.write_text("existing", encoding="utf-8")
 	write_default_config(target, force=True)
 	assert target.read_text(encoding="utf-8") == DEFAULT_TEMPLATE
+
+
+def test_load_config_reads_translate_files(tmp_path):
+	cwd = tmp_path / "proj"
+	cwd.mkdir()
+	_write(cwd / CONFIG_FILENAME, """
+[[translate_files]]
+source = "doc/{source}/**/*.md"
+target = "doc/{target}/{relpath}"
+
+[[translate_files]]
+source = "CHANGELOG.md"
+target = "CHANGELOG.{target}.md"
+""")
+	cfg = load_config(cwd, home=tmp_path / "home")
+	assert cfg.translate_files == [
+		TranslateFilesEntry(source="doc/{source}/**/*.md", target="doc/{target}/{relpath}"),
+		TranslateFilesEntry(source="CHANGELOG.md", target="CHANGELOG.{target}.md"),
+	]
+
+
+def test_load_config_translate_files_defaults_empty(tmp_path):
+	cfg = load_config(tmp_path, home=tmp_path / "home")
+	assert cfg.translate_files == []
+
+
+def test_translate_files_entry_missing_target_placeholder_rejected(tmp_path):
+	cwd = tmp_path / "proj"
+	cwd.mkdir()
+	_write(cwd / CONFIG_FILENAME, """
+[[translate_files]]
+source = "doc/{source}/**/*.md"
+target = "doc/dest/{relpath}"
+""")
+	with pytest.raises(ValueError, match="target"):
+		load_config(cwd, home=tmp_path / "home")
+
+
+def test_translate_files_entry_relpath_without_wildcards_rejected(tmp_path):
+	cwd = tmp_path / "proj"
+	cwd.mkdir()
+	_write(cwd / CONFIG_FILENAME, """
+[[translate_files]]
+source = "CHANGELOG.md"
+target = "CHANGELOG-{target}-{relpath}.md"
+""")
+	with pytest.raises(ValueError, match="relpath"):
+		load_config(cwd, home=tmp_path / "home")
 
 
 def test_default_template_loads_as_default_config(tmp_path):

@@ -13,6 +13,7 @@ from gettext_auto import po as po_mod
 from gettext_auto import verify as verify_mod
 from gettext_auto import install as install_mod
 from gettext_auto import nvda as nvda_mod
+from gettext_auto import files as files_mod
 
 
 def _parse_nplurals(plural_rule: str) -> int:
@@ -429,6 +430,65 @@ def nvda_apply(lang, cwd, input_path):
 		out = nvda_mod.apply_manifest(root, lang, payload["translations"], info)
 	except RuntimeError as e:
 		raise click.ClickException(str(e))
+	click.echo(json.dumps(out, indent=2))
+
+
+@main.group()
+def files():
+	"""Markdown / doc file translation driven by [[translate_files]] config."""
+
+
+def _resolve_files_entries(root: Path) -> tuple[list, dict | None, str]:
+	"""Return (entries, nvda_info, source_lang) for a files command."""
+	cfg = config_mod.load_config(root)
+	det = project.detect(root)
+	entries = files_mod.effective_entries(cfg.translate_files, det["nvda"])
+	source_lang = det["source_lang"] or "en"
+	return entries, det["nvda"], source_lang
+
+
+@files.command("scan")
+@click.argument("lang")
+@click.option("--cwd", type=click.Path(exists=True, file_okay=False), default=".")
+@click.option("--force", is_flag=True, default=False,
+			  help="Include files whose target already exists (they will be overwritten on apply).")
+def files_scan(lang, cwd, force):
+	"""Enumerate pending doc-file translations for <lang>. Emits JSON."""
+	root = Path(cwd).resolve()
+	entries, _nvda_info, source_lang = _resolve_files_entries(root)
+	if not entries:
+		click.echo(json.dumps({
+			"project": {"source_lang": source_lang, "target_lang": lang},
+			"entries": [],
+		}, indent=2))
+		return
+	out = files_mod.scan_files(root, entries, source_lang, lang, force=force)
+	click.echo(json.dumps(out, indent=2))
+
+
+@files.command("apply")
+@click.argument("lang")
+@click.option("--cwd", type=click.Path(exists=True, file_okay=False), default=".")
+@click.option("--input", "input_path", default="-")
+@click.option("--force", is_flag=True, default=False,
+			  help="Overwrite existing target files.")
+def files_apply(lang, cwd, input_path, force):
+	"""Write translated doc files for <lang> from JSON payload."""
+	raw = sys.stdin.read() if input_path == "-" else Path(input_path).read_text(encoding="utf-8")
+	payload = json.loads(raw)
+	root = Path(cwd).resolve()
+	entries, _nvda_info, source_lang = _resolve_files_entries(root)
+	if not entries:
+		click.echo(json.dumps({
+			"summary": {"written_ok": 0, "verification_failed": 0, "skipped": 0},
+			"entries": [],
+		}, indent=2))
+		return
+	out = files_mod.apply_files(
+		root, entries, source_lang, lang,
+		payload.get("translations", []),
+		force=force,
+	)
 	click.echo(json.dumps(out, indent=2))
 
 

@@ -20,6 +20,7 @@ With gettext-auto you focus on shipping, the model handles the boring first pass
 - Writes every translation as fuzzy so nothing the model produced ships until someone signs off on it.
 - Verifies placeholders and plural counts before writing. If something is off, the entry gets an `AUTOTRANS-ERROR:` comment so `msgfmt` catches it.
 - First class support for NVDA screen reader add-ons translates `summary` and `description` from manifest.ini in the same pass.
+- Translates markdown docs (readme, user guide, changelog, whatever you point it at) one whole file at a time. Verifies heading, code-fence, and link counts match the source before writing.
 
 ## Installation
 
@@ -81,10 +82,12 @@ The skill is a thin wrapper around the `gettext-auto` CLI. You can run any of th
 - `gettext-auto scan <lang>` lists pending entries for a language as JSON.
 - `gettext-auto apply <lang>` takes translated JSON on stdin and writes it back to the .po, verifying placeholders and plural counts as it goes.
 - `gettext-auto compile` compiles every .po to a .mo.
+- `gettext-auto files scan <lang>` lists markdown / doc files that have a source but no translated target yet, configured via `[[translate_files]]` (see Configuration). Pass `--force` to include files whose target already exists.
+- `gettext-auto files apply <lang>` takes translated JSON on stdin and writes each entry to its target. Existing targets are left alone unless `--force` is passed.
 
 All of the discovery commands accept `--po-root` and `--cwd`.
 
-If your project is an NVDA add-on, you want to use `gettext-auto nvda scan <lang>` and `gettext-auto nvda apply <lang>` for the manifest. Claude Code will handle this for you if it needs it.
+If your project is an NVDA add-on, you want to use `gettext-auto nvda scan <lang>` and `gettext-auto nvda apply <lang>` for the manifest. Claude Code will handle this for you if it needs it. NVDA add-ons also get a built-in default for `translate_files` that mirrors `addon/doc/<source>/**/*.md` into `addon/doc/<target>/...` without any config.
 
 ## Configuration
 
@@ -108,6 +111,28 @@ report_bugs_to = "bugs@acme.com"
 ```
 
 Out of the box your git identity goes into the Last-Translator header, which is usually what you want. If you'd rather not have your name attached to machine output, point `author_name` and `author_email` at a project email or bot account before running.
+
+### Translating doc files
+
+Markdown and other prose files are driven by one or more `[[translate_files]]` entries. Each maps a source glob to a target path template:
+
+```toml
+[[translate_files]]
+source = "doc/{source}/**/*.md"
+target = "doc/{target}/{relpath}"
+
+[[translate_files]]
+source = "CHANGELOG.md"
+target = "CHANGELOG.{target}.md"
+```
+
+- `{source}` and `{target}` get substituted with language codes.
+- `{relpath}` is the wildcard portion of the match. For a glob `doc/{source}/**/*.md` matched against `doc/en/guide/install.md`, `{relpath}` is `guide/install.md`, and the target resolves to `doc/es/guide/install.md`.
+- `{target}` in the target template is required. `{relpath}` only makes sense when the source has wildcards.
+- Multiple entries are allowed. First entry to claim a source file wins.
+- Existing target files are left alone. Delete them or run `gettext-auto files scan <lang> --force` to regenerate.
+
+NVDA add-ons get a default entry that covers `addon/doc/<lang>/**/*.md` (or `doc/<lang>/**/*.md` for flat layouts) when no user `[[translate_files]]` is configured.
 
 ## Roadmap
 
