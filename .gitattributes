@@ -1,0 +1,21 @@
+# Normalize text files to LF on commit. Working trees keep whatever the
+# platform prefers; the repo always stores LF so behavior matches across
+# Linux, macOS, and Windows.
+* text=auto eol=lf
+
+# Explicit text types (avoids guessing for ambiguous extensions).
+*.py     text
+*.md     text
+*.toml   text
+*.lock   text
+*.json   text
+*.yml    text
+*.yaml   text
+*.cfg    text
+*.ini    text
+*.po     text
+*.pot    text
+*.txt    text
+
+# Compiled gettext catalogs.
+*.mo     binary
