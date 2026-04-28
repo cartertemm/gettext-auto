@@ -134,6 +134,10 @@ target = "CHANGELOG.{target}.md"
 
 NVDA add-ons get a default entry that covers `addon/doc/<lang>/**/*.md` (or `doc/<lang>/**/*.md` for flat layouts) when no user `[[translate_files]]` is configured.
 
+## A note on privacy
+
+Translation runs through whichever model Claude Code is using, so every msgid in your `.po` files and every byte of every markdown file matched by `[[translate_files]]` ends up in a prompt. If your sources contain API keys, internal URLs, NDA material, or anything you wouldn't paste into a chat window, look before you run. The tool doesn't filter for you.
+
 ## Roadmap
 
 Things that I want to have happen:
