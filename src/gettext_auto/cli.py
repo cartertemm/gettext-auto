@@ -393,7 +393,7 @@ def uninstall_skill_cmd():
 	click.echo(json.dumps({"removed": removed}, indent=2))
 
 
-@main.group()
+@main.group(short_help="NVDA add-on manifest translation.")
 def nvda():
 	"""NVDA add-on manifest translation (optional; install with [nvda] extra)."""
 
@@ -433,7 +433,7 @@ def nvda_apply(lang, cwd, input_path):
 	click.echo(json.dumps(out, indent=2))
 
 
-@main.group()
+@main.group(short_help="Markdown / doc file translation.")
 def files():
 	"""Markdown / doc file translation driven by [[translate_files]] config."""
 
