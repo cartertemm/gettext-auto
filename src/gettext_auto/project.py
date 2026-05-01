@@ -1,6 +1,7 @@
 """Project state detection."""
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import TypedDict
 import polib
@@ -61,8 +62,9 @@ def _walk(search_root: Path, pattern: str) -> list[Path]:
 
 
 def _detect_project_type(root: Path) -> str:
-	for p in root.rglob("*.py"):
-		if not _is_excluded(p, root):
+	for _dirpath, dirnames, filenames in os.walk(root):
+		dirnames[:] = [d for d in dirnames if d not in EXCLUDE_DIRS]
+		if any(f.endswith(".py") for f in filenames):
 			return "python"
 	return "unknown"
 
