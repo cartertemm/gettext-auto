@@ -16,6 +16,10 @@ from gettext_auto import nvda as nvda_mod
 from gettext_auto import files as files_mod
 
 
+def _resolve_home() -> Path:
+	return Path(os.environ.get("USERPROFILE") or os.environ.get("HOME") or str(Path.home()))
+
+
 def _parse_nplurals(plural_rule: str) -> int:
 	m = re.search(r"nplurals\s*=\s*(\d+)", plural_rule)
 	return int(m.group(1)) if m else 2
@@ -347,8 +351,7 @@ def compile_cmd(cwd, domain, po_root):
 def init_config(cwd, global_, force):
 	"""Drop a commented .gettext-auto.toml here so the options are easy to find."""
 	if global_:
-		home = Path(os.environ.get("USERPROFILE") or os.environ.get("HOME") or str(Path.home()))
-		target = home / ".claude" / config_mod.CONFIG_FILENAME
+		target = _resolve_home() / ".claude" / config_mod.CONFIG_FILENAME
 	else:
 		target = Path(cwd) / config_mod.CONFIG_FILENAME
 	try:
@@ -364,16 +367,14 @@ def init_config(cwd, global_, force):
 def install_skill_cmd():
 	"""Install the skill and /translate command into ~/.claude/."""
 	source_root = install_mod.locate_source_root()
-	home = Path(os.environ.get("USERPROFILE") or os.environ.get("HOME") or str(Path.home()))
-	written = install_mod.install(source_root=source_root, target_home=home)
+	written = install_mod.install(source_root=source_root, target_home=_resolve_home())
 	click.echo(json.dumps({"written": written}, indent=2))
 
 
 @main.command("uninstall-skill")
 def uninstall_skill_cmd():
 	"""Remove the skill and /translate command from ~/.claude/."""
-	home = Path(os.environ.get("USERPROFILE") or os.environ.get("HOME") or str(Path.home()))
-	removed = install_mod.uninstall(target_home=home)
+	removed = install_mod.uninstall(target_home=_resolve_home())
 	click.echo(json.dumps({"removed": removed}, indent=2))
 
 
