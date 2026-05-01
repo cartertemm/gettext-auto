@@ -221,14 +221,10 @@ def extract(cwd, domain, po_root):
 	pot_rel = _pot_output_path(det, dom)
 	pot_abs = root / pot_rel
 	pot_abs.parent.mkdir(parents=True, exist_ok=True)
-	old = os.getcwd()
 	os.chdir(cwd)
-	try:
-		code, msg = _run_pybabel([
-			"extract", "-F", "babel.cfg", "-o", pot_rel, ".",
-		])
-	finally:
-		os.chdir(old)
+	code, msg = _run_pybabel([
+		"extract", "-F", "babel.cfg", "-o", pot_rel, ".",
+	])
 	if code:
 		raise click.ClickException(f"extract failed: {msg}" if msg else f"extract failed for {pot_rel}")
 	cfg = config_mod.load_config(root)
@@ -256,15 +252,11 @@ def init_po(lang, cwd, domain, po_root):
 	po_rel = _po_output_path(det["layout"], lang, dom)
 	po_abs = root / po_rel
 	po_abs.parent.mkdir(parents=True, exist_ok=True)
-	old = os.getcwd()
 	os.chdir(cwd)
-	try:
-		code, msg = _run_pybabel([
-			"init", "--input-file", pot_rel, "--output-file", po_rel,
-			"--locale", lang, "--domain", dom,
-		])
-	finally:
-		os.chdir(old)
+	code, msg = _run_pybabel([
+		"init", "--input-file", pot_rel, "--output-file", po_rel,
+		"--locale", lang, "--domain", dom,
+	])
 	if code:
 		raise click.ClickException(f"init-po failed: {msg}" if msg else f"init-po failed for {po_rel}")
 	cfg = config_mod.load_config(root)
@@ -300,20 +292,16 @@ def update_po(cwd, domain, po_root):
 	pot_rel = det["pot_path"]
 	failures: list[str] = []
 	messages: list[str] = []
-	old = os.getcwd()
 	os.chdir(cwd)
-	try:
-		for lang, po_rel in det["po_files"].items():
-			code, msg = _run_pybabel([
-				"update", "--input-file", pot_rel, "--output-file", po_rel,
-				"--locale", lang, "--domain", dom,
-			])
-			if code:
-				failures.append(po_rel)
-				if msg:
-					messages.append(msg)
-	finally:
-		os.chdir(old)
+	for lang, po_rel in det["po_files"].items():
+		code, msg = _run_pybabel([
+			"update", "--input-file", pot_rel, "--output-file", po_rel,
+			"--locale", lang, "--domain", dom,
+		])
+		if code:
+			failures.append(po_rel)
+			if msg:
+				messages.append(msg)
 	if failures:
 		detail = "; ".join(messages) if messages else ", ".join(failures)
 		raise click.ClickException(f"update-po failed: {detail}")
@@ -334,21 +322,17 @@ def compile_cmd(cwd, domain, po_root):
 		return
 	failures: list[str] = []
 	messages: list[str] = []
-	old = os.getcwd()
 	os.chdir(cwd)
-	try:
-		for lang, po_rel in det["po_files"].items():
-			mo_rel = str(Path(po_rel).with_suffix(".mo")).replace("\\", "/")
-			code, msg = _run_pybabel([
-				"compile", "--input-file", po_rel, "--output-file", mo_rel,
-				"--locale", lang,
-			])
-			if code:
-				failures.append(po_rel)
-				if msg:
-					messages.append(msg)
-	finally:
-		os.chdir(old)
+	for lang, po_rel in det["po_files"].items():
+		mo_rel = str(Path(po_rel).with_suffix(".mo")).replace("\\", "/")
+		code, msg = _run_pybabel([
+			"compile", "--input-file", po_rel, "--output-file", mo_rel,
+			"--locale", lang,
+		])
+		if code:
+			failures.append(po_rel)
+			if msg:
+				messages.append(msg)
 	if failures:
 		detail = "; ".join(messages) if messages else ", ".join(failures)
 		raise click.ClickException(f"compile failed: {detail}")
