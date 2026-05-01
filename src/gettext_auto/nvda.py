@@ -133,6 +133,7 @@ def apply_manifest(root: Path | str, lang: str, translations: list[dict], info: 
 			"id": key, "status": "ok", "errors": [], "written": True,
 		})
 		summary["written_ok"] += 1
-	cfg.filename = str(locale_path)
-	cfg.write()
+	if summary["written_ok"] > 0:
+		cfg.filename = str(locale_path)
+		cfg.write()
 	return {"summary": summary, "entries": entries_out, "target": locale_rel}
