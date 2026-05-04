@@ -48,9 +48,8 @@ def _expand(template: str, source_lang: str, target_lang: str, relpath: str = ""
 
 
 def _anchor(pattern: str) -> str:
-	"""Literal prefix of a glob pattern, POSIX-separated, up to the first
-	path segment containing a wildcard. Empty if the first segment already
-	contains one."""
+	"""Return the non-wildcard prefix of a glob pattern. For "doc/en/**/*.md"
+	that's "doc/en". Returns "" if the pattern starts with a wildcard."""
 	parts = PurePosixPath(pattern).parts
 	anchor_parts: list[str] = []
 	for p in parts:
@@ -170,9 +169,7 @@ def _strip_fenced_code(text: str) -> str:
 
 
 def _count_fences(text: str) -> int:
-	"""Raw count of fence lines (lines starting with ```). A well-formed doc
-	has an even count; comparing source-vs-target raw counts catches both
-	mismatched block counts and malformed output (unclosed fence in target)."""
+	"""Count the number of ``` fence lines. An even count means all fences are closed."""
 	return sum(1 for line in text.splitlines() if _FENCE_LINE_RE.match(line))
 
 

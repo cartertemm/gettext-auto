@@ -10,10 +10,10 @@ COMMANDS_DIR = "commands"
 
 
 def locate_source_root() -> Path:
-	"""Find the dir holding skills/ and commands/.
+	"""Find the directory containing skills/ and commands/.
 
-	In a wheel install, hatchling's force-include bundles them under
-	src/gettext_auto/_assets/. In an editable/dev install, they live at repo root.
+	When installed as a package, these are bundled under gettext_auto/_assets/.
+	When running from a cloned repo, they're at the repo root.
 	"""
 	import gettext_auto
 	pkg_dir = Path(gettext_auto.__file__).resolve().parent
@@ -41,7 +41,6 @@ def install(source_root: Path, target_home: Path) -> list[str]:
 	for p in dst_skill.rglob("*"):
 		if p.is_file():
 			written.append(str(p.relative_to(target_home)))
-
 	src_cmd = source_root / COMMANDS_DIR / "translate.md"
 	dst_cmd = target_home / ".claude" / COMMANDS_DIR / "translate.md"
 	dst_cmd.parent.mkdir(parents=True, exist_ok=True)

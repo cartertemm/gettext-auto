@@ -17,11 +17,7 @@ def entry_id(entry: polib.POEntry) -> str:
 
 
 def enumerate_pending(pof: polib.POFile) -> list[polib.POEntry]:
-	"""Untranslated or fuzzy, but not obsolete.
-
-	Note: polib exposes msgstr_plural as a dict of ints -> strings; an entry
-	with all-empty plural forms still has a truthy dict, so check per-value.
-	"""
+	"""Return entries that still need translation: untranslated or fuzzy, excluding obsolete."""
 	pending = []
 	for entry in pof:
 		if entry.obsolete:
@@ -77,17 +73,11 @@ def write_translation(
 	msgstr_plural: list[str] | None = None,
 	mark_fuzzy: bool = True,
 ) -> None:
-	"""Write translation. Refuses to overwrite a clean translation.
+	"""Write a translation. Raises ValueError if the entry is already translated and clean.
 
-	Symmetric with enumerate_pending: a plural entry is "clean" only if ALL
-	plural forms are non-empty. A half-translated plural is pending and may be
-	overwritten.
-
-	mark_fuzzy controls what happens on the way in. True (the default) tacks
-	the fuzzy flag on so msgfmt and translation editors know the entry still
-	needs a human. False skips that. An already-fuzzy entry stays fuzzy
-	either way. Only turn this off if you're reviewing translations some
-	other way.
+	By default, new translations are marked fuzzy so msgfmt won't compile them
+	until a human reviews them. Pass mark_fuzzy=False only if you have another
+	review step in place.
 	"""
 	if entry.msgid_plural:
 		plurals = entry.msgstr_plural or {}
@@ -117,13 +107,7 @@ def update_po_headers(
 	report_bugs_to: str | None = None,
 	revision_date: bool = False,
 ) -> None:
-	"""Patch the PO metadata headers in place.
-
-	A non-empty string overwrites. None or "" leaves the existing value
-	alone. The empty-string case is the one that matters: unset config keys
-	come through as "", and we don't want a missing config value to wipe
-	out whatever pybabel or msginit already wrote into the header.
-	"""
+	"""Update PO metadata headers in place. Pass None or "" to leave a field unchanged."""
 	if last_translator:
 		pof.metadata["Last-Translator"] = last_translator
 	if language_team:

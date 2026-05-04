@@ -1,15 +1,13 @@
-"""User config loader for .gettext-auto.toml.
+"""Config loader for .gettext-auto.toml.
 
-Checks three places in this order and uses whichever one turns up first:
+Looks in three places in order, uses the first one found:
   1. <cwd>/.gettext-auto.toml
   2. <cwd>/.claude/.gettext-auto.toml
   3. ~/.claude/.gettext-auto.toml
 
-No file means defaults. author_name and author_email default to the literal
-string "{git}", which gets expanded to `git config user.name` / `user.email`
-on demand by resolve_author. The indirection is deliberate: a missing git
-install, or one that's never been configured, shouldn't crash config loading.
-It should just mean we skip those PO headers when we write.
+If no file is found, defaults apply. author_name and author_email default to
+"{git}", which resolves to `git config user.name` / `user.email` when needed.
+If git isn't installed or those keys aren't set, those PO headers are left out.
 """
 from __future__ import annotations
 
@@ -26,43 +24,38 @@ GIT_PLACEHOLDER = "{git}"
 DEFAULT_TEMPLATE = """\
 # gettext-auto config.
 #
-# Every key below is optional and commented out. Uncomment the ones
-# you care about and leave the rest. Files are checked in this order,
-# first match wins:
+# All keys are optional. Uncomment whatever you need. The first file found
+# wins, checked in this order:
 #   <cwd>/.gettext-auto.toml
 #   <cwd>/.claude/.gettext-auto.toml
 #   ~/.claude/.gettext-auto.toml
 
-# Goes into the Last-Translator header of the .po files we write.
-# "{git}" is a placeholder that reads `git config user.name` or
-# `user.email` when we need it, so the git identity is the default.
-# Set a literal string (a project email, a bot account, whatever)
-# if you'd rather not be the one listed on AI output.
+# Name and email for the Last-Translator header in generated .po files.
+# "{git}" reads from git config, so your git identity is used by default.
+# Set a literal value if you'd rather list a bot account or project address.
 # author_name = "{git}"
 # author_email = "{git}"
 
-# true (the default): new translations land as fuzzy so msgfmt won't
-# compile the .po until a human clears them. false: they land clean.
-# Don't flip this off unless you have another review step.
+# When true (the default), new translations are marked fuzzy so msgfmt
+# won't compile them until a human reviews each one. Set to false only if
+# you have another review process in place.
 # mark_fuzzy = true
 
-# Short project description passed to the model. Makes a real difference
-# on domain-specific work where the same word means different things in
-# different contexts.
+# Short description of the project, passed to the model as context. Helps
+# a lot when the same word means different things in different domains.
 # context = "NVDA is a Windows screen reader; audience is blind developers."
 
 # Standard .po header fields.
 # language_team = "French <fr-team@example.com>"
 # report_bugs_to = "bugs@example.com"
 
-# Markdown / doc file translation. Each [[translate_files]] entry maps a
-# glob of source files to a target path template. {source} and {target}
-# get substituted with the language codes. {relpath} is the wildcard
-# portion of the match, so a match at doc/en/guide/install.md against
-# "doc/{source}/**/*.md" has {relpath} = "guide/install.md". Listing the
-# entry below (uncommented) would mirror that into doc/<target>/guide/install.md.
-# Existing target files are left alone; run `gettext-auto files scan <lang> --force`
-# to regenerate.
+# Translate markdown or other doc files. Each entry pairs a source glob with
+# a target path template. {source} and {target} are replaced with language
+# codes. {relpath} captures the wildcard portion of the match -- for a file
+# at doc/en/guide/install.md matched by "doc/{source}/**/*.md", {relpath}
+# is "guide/install.md". The example below mirrors each source file into
+# doc/<lang>/<relpath>. Existing targets are left alone unless you run with
+# --force.
 #
 # [[translate_files]]
 # source = "doc/{source}/**/*.md"
@@ -114,10 +107,9 @@ def search_paths(cwd: Path, home: Path) -> list[Path]:
 
 
 def load_config(cwd: Path, home: Path | None = None) -> Config:
-	"""Return the first config found. Nothing merges.
+	"""Return the first config file found. Nothing merges across files.
 
-	Unknown keys are dropped on the floor so adding options later doesn't
-	break an older CLI reading a newer config file.
+	Unknown keys are ignored, so a newer config file won't break an older CLI.
 	"""
 	if home is None:
 		home = Path.home()
@@ -175,11 +167,10 @@ def _git_config_value(cwd: Path, key: str) -> str:
 
 
 def resolve_author(cfg: Config, cwd: Path) -> tuple[str, str]:
-	"""Expand the "{git}" placeholder by shelling out to `git config`.
+	"""Resolve the author name and email, expanding "{git}" by reading git config.
 
-	Either return value can come back empty (no git on the box, or the key
-	isn't set). Callers should treat an empty string as "skip this header"
-	rather than an error.
+	Either value may be empty if git isn't installed or the key isn't set.
+	Treat empty strings as "omit this header", not an error.
 	"""
 	name = cfg.author_name
 	email = cfg.author_email
@@ -203,7 +194,7 @@ def write_default_config(path: Path, force: bool = False) -> None:
 
 
 def format_last_translator(name: str, email: str) -> str:
-	"""Build a Last-Translator header value. Empty when both inputs are."""
+	"""Build the Last-Translator header value. Returns "" if both name and email are empty."""
 	if not name and not email:
 		return ""
 	if name and email:
