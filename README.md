@@ -3,13 +3,14 @@
 Welcome to gettext-auto!
 This is a [Claude Code](https://www.anthropic.com/claude-code) skill that translates gettext-based projects into other languages using AI.
 
-Most software is written in English, yet [around 75% of people browsing the web don't use English as their native language](https://parkmagazineny.com/75-of-internet-users-are-non-english-speakers-why-startups-ignoring-multilingual-growth-are-falling-behind/). If you've ever tried to localize a codebase, you know it's a slog. This project was built on three beliefs:
+Most software is written in English, yet [around 75% of people browsing the web don't use English as their native language](https://parkmagazineny.com/75-of-internet-users-are-non-english-speakers-why-startups-ignoring-multilingual-growth-are-falling-behind/). If you've ever tried to localize a codebase, you know it can be a real slog. This project was built on three beliefs:
 
 - A buggy translation is better than no translation at all.
-- Language models can move content between languages with reasonable accuracy.
-- Humans will always be better at making sure text reads well in their own language. AI can fill in the gaps in the meantime, or give them a point to start.
+- Language models can move content between most high-resource languages with reasonable accuracy.
+- Humans will always be better at making sure text reads well and naturalizes in their own language.
+AI can fill in the gaps in the meantime, or give them a point to start.
 
-You focus on shipping. The model handles the boring first pass. A native speaker comes in later to clean up the parts it got wrong.
+You focus on shipping. The model handles the boring first pass. A native speaker can come in later to clean up the parts it got wrong. Either way, you no longer have to exclude people on account of "not enough time."
 
 ## Install
 
@@ -24,7 +25,7 @@ gettext-auto install-skill
 
 That installs the tool and copies the `/translate` slash command into `~/.claude/`. To remove everything later, run `gettext-auto uninstall-skill`.
 
-If you'd rather not touch a terminal, paste this into Claude Code and let it do the install for you:
+For the lazy path where you'd rather not touch a terminal, paste this into Claude Code and let it do the install for you:
 
 > Install gettext-auto from https://github.com/cartertemm/gettext-auto by running `uv tool install git+https://github.com/cartertemm/gettext-auto`, then `gettext-auto install-skill`.
 
@@ -32,7 +33,7 @@ Translating an NVDA add-on? See the [NVDA add-ons](#nvda-add-ons) section for on
 
 ## Quickstart
 
-Open a project that already uses gettext (it has a `.pot` file or some `.po` files). From inside Claude Code:
+Open a project that already uses gettext (which is just to say it has a `.pot` file and some `.po` files). From inside Claude Code:
 
 ```
 /translate es
@@ -55,21 +56,21 @@ Translated 47 entries into es.po (all marked fuzzy for review).
 Verification failed: 0
 Doc files written: 1 (doc/es/readme.md)
 
-Review the fuzzy entries in your favorite .po editor and ship when you're happy.
+Review the fuzzy entries in your favorite .po editor, then push when you're happy.
 ```
 
-If your project doesn't have a `.pot` yet, the skill will stop and tell you to set one up first. Wrapping source strings in `_()` and pulling them into a `.pot` is the standard gettext setup; once that's done, re-run `/translate es`.
+If your project doesn't have a `.pot` yet, the skill will stop and tell you to set one up first. Wrapping source strings in `_()` and pulling them into a `.pot` is the standard gettext setup. Once that's done, re-run `/translate es`.
+
+See [translating apps with Gettext - a comprehensive tutorial](https://lokalise.com/blog/translating-apps-with-gettext-comprehensive-tutorial/)
 
 ## What "fuzzy" means (and how to skip it)
 
-Every translation gets written with the gettext **fuzzy flag**. Fuzzy means "machine-translated, needs human review." It's the safety net: `msgfmt` won't compile a fuzzy entry into the production `.mo` catalog, so nothing the model produced ships until somebody clears the flag.
+Every translation gets written with the gettext **fuzzy flag**. Fuzzy means "machine-translated, needs human review." `msgfmt` won't compile a fuzzy entry into the production `.mo` catalog, so nothing the model produced is integrated until somebody clears the flag.
 
 To review fuzzy entries:
 
 - Open the `.po` in [poedit](https://poedit.net/) and step through each one. It surfaces fuzzy entries first and gives you a button to clear them.
 - Or open the `.po` in any text editor and look for `#, fuzzy` lines above each entry; delete those lines to clear the flag.
-
-When you're satisfied, compile to `.mo` and ship.
 
 ### YOLO mode
 
@@ -93,9 +94,13 @@ Leave the config alone, and after `/translate es` finishes, run:
 msgattrib --clear-fuzzy --output-file=es.po es.po
 ```
 
-Same outcome.
+Either way, hopefully a native speaker will file issues against your translations once they see them.
 
-Either way, expect a native speaker to file issues against your translations once real users see them. That's fine. A buggy translation is better than no translation.
+You are highly encouraged to add a localization section to your readme or documentation that basically says "This project was translated with the help of Generative AI. If you find strings that don't make sense, please open an issue or pull request."
+
+> But I don't want to acknowledge that I used AI...
+
+A buggy translation is better than no translation at all. Partial access is better than no access whatsoever.
 
 ## Will it overwrite my work?
 
@@ -109,13 +114,13 @@ In short, you can run `/translate es` as many times as you want; it will only ev
 
 ## Privacy
 
-Translation runs through whichever model Claude Code is using, so every msgid in your `.po` files and every byte of every markdown file matched by your config ends up in a prompt. If your sources contain API keys, internal URLs, NDA material, or anything else you wouldn't paste into a chat window, look before you run. The tool doesn't filter for you.
+Translation runs through whichever model Claude Code is using, so every msgid in your `.po` files and every byte of every markdown file matched by your config ends up in a prompt. If your sources contain API keys, internal URLs, NDA material, or anything else you wouldn't paste into a chat window, look before you run. The tool will not filter these out for you.
 
 ## Configuration
 
 For most projects you don't need to configure anything. The defaults are sensible.
 
-If you want to customize, drop a `.gettext-auto.toml` somewhere the tool can find it. It checks these places, first match wins:
+If you want to customize behavior, drop a `.gettext-auto.toml` somewhere the tool can find it. It checks these places, in order:
 
 1. `<project>/.gettext-auto.toml`
 2. `<project>/.claude/.gettext-auto.toml`
@@ -132,7 +137,8 @@ author_name = "Jane Smith"
 author_email = "jane@acme.com"
 ```
 
-These go into the `Last-Translator` header of your `.po` files. The default for both is `"{git}"`, which reads `git config user.name` and `user.email` at translation time. Set explicit values if you'd rather a project email or a bot account get the credit instead of you.
+These go into the `Last-Translator` header of your `.po` files.
+Both fields default to `"{git}"`, which automatically reads your `git config user.name` and `user.email` at translation time. Set explicit values if you'd rather a project email or a bot account get the credit instead of you.
 
 ### Review safety net
 
@@ -145,10 +151,10 @@ mark_fuzzy = true
 ### Project context
 
 ```toml
-context = "NVDA is a Windows screen reader; audience is blind developers."
+context = "NVDA is a Windows screen reader, audience is blind screen reader users. Do not translate common acronyms."
 ```
 
-A short description of your project, passed to the model as extra context. Helps when the same word means different things in different domains.
+A short description of your project, which gets passed directly to the model as extra context. This can be especially helpful if the same word means different things in different domains, or if you find that project-specific acronyms are getting translated when they shouldn't be.
 
 ### Standard .po headers
 
@@ -161,7 +167,7 @@ Optional headers written into your `.po` files. Skip them unless you specificall
 
 ### Translating doc files
 
-To translate markdown (or other prose files) alongside your `.po` files, declare one or more `[[translate_files]]` entries. Each maps a source glob to a target path template:
+To translate markdown (or other files with prose) alongside your `.po` files, declare one or more `[[translate_files]]` entries. Each maps a source glob to a target path template:
 
 ```toml
 [[translate_files]]
@@ -169,11 +175,11 @@ source = "doc/{source}/**/*.md"
 target = "doc/{target}/{relpath}"
 ```
 
-What that says: translate every `.md` file under `doc/<source-language>/` into a matching path under `doc/<target-language>/`. So `doc/en/guide/install.md` becomes `doc/es/guide/install.md` for a Spanish run.
+This means: translate every `.md` file under `doc/<source-language>/` into a matching path under `doc/<target-language>/`. So `doc/en/guide/install.md` becomes `doc/es/guide/install.md` for a Spanish run.
 
 - `{source}` and `{target}` are replaced with language codes.
 - `{relpath}` is the wildcard portion of each match.
-- You can have multiple entries; the first to claim a source file wins.
+- You can have multiple entries, the first to claim a source file wins.
 - Existing target files are never overwritten. Delete them to regenerate.
 
 NVDA add-ons get a sensible default for this without any config (see [NVDA add-ons](#nvda-add-ons)).
@@ -184,7 +190,7 @@ NVDA add-ons get a sensible default for this without any config (see [NVDA add-o
 
 If your project is an NVDA add-on (we detect this by looking for `addon/manifest.ini`, or `manifest.ini` next to a `locale/` directory), the skill will:
 
-- Translate the `summary` and `description` fields from the add-on's `manifest.ini` for each language, in the same pass.
+- Translate the `summary` and `description` fields from the add-on's `manifest.ini` for each language.
 - Translate any markdown docs under `addon/doc/<lang>/` (or `doc/<lang>/` for flat layouts) into the target language. No `[[translate_files]]` config needed.
 
 You'll need the optional `configobj` dependency for the manifest part to work. Install with the `[nvda]` extra:
@@ -197,27 +203,30 @@ If you already installed without the extra, run that command again; uv will repl
 
 ## How it works under the hood
 
-`/translate` is a small skill that orchestrates a CLI named `gettext-auto`. The CLI does all the deterministic work: finding your `.pot` and `.po` files, matching globs, verifying that placeholders and plural counts line up, never overwriting cleared entries. The model does the actual translation: the CLI hands it a batch of pending entries as JSON, the model returns translated JSON, the CLI verifies and writes.
+`/translate` is a small skill that orchestrates a CLI named `gettext-auto`.
+The CLI does all the deterministic work that has been known to pointlessly burn through tokens, like finding your `.pot` and `.po` files, matching globs, verifying that placeholders and plural counts line up, never overwriting cleared entries, verifying markdown structure, etc.
+The model does the actual translation.
+The CLI hands it a batch of pending entries as JSON, the model returns translated JSON, the CLI verifies and writes it back if everything looks good.
 
-You don't normally need to touch the CLI. It exists if you want to script around the tool or debug something the skill is doing. Output is JSON, intended for machine consumption rather than humans. Run `gettext-auto --help` for the list of subcommands.
+You don't normally need to touch the CLI yourself, except for optionally generating a config file. However, it can be helpful for scripting around the tool or debugging something the skill is doing. Output is JSON, intended for machine consumption rather than humans. Run `gettext-auto --help` for the list of subcommands.
 
-The split between CLI and model is deliberate. Anything that has a right answer (where the .po lives, whether placeholders survived, whether you've already reviewed an entry) stays out of the model's hands.
+The split between CLI and model is a deliberate decision. Anything that has a binary answer (where the .po lives, whether placeholders survived, whether you've already reviewed an entry) stays out of the model's hands.
 
 ## Roadmap
 
-Things I'd like to ship next:
+Things I'd like to do:
 
-- A Codex / non-Claude skill so this isn't tied to one platform.
-- Standalone support for people without coding-agent subscriptions, probably via [llm](https://llm.datasette.io/).
+- Build a Codex / non-Claude skill so this isn't tied to one platform.
+- Offer standalone support for people without coding-agent subscriptions, probably via [llm](https://llm.datasette.io/).
 - Retry on verification failure rather than reporting and moving on.
 - Support for non-pybabel gettext frontends (raw `xgettext`, `scons pot`, etc.).
 - A progress indicator for long runs.
 
-Pull requests welcome for any of these or for things I haven't thought of.
+Pull requests welcome for any of these, plus the ones I haven't thought of.
 
 ## Contributing
 
-Clone, install with the dev extras, run the tests:
+Clone the repository, install with the dev extras, and run the tests:
 
 ```bash
 git clone https://github.com/cartertemm/gettext-auto
@@ -226,8 +235,13 @@ uv sync --extra dev --extra nvda
 uv run pytest
 ```
 
-If you're adding behavior, add a test. If you're fixing a bug, add a test that fails before the fix and passes after. Tests live in `tests/unit/` and `tests/integration/`; sample projects to test against are in `tests/fixtures/`.
+This project aims to achieve close to 100% test coverage and follows the TDD principle.
+
+- If you're adding behavior, add a test first.
+- If you're fixing a bug, add a test that fails. Then write the fix and commit once the test passes.
+
+Tests live in `tests/unit/` and `tests/integration/`; sample projects to test against are in `tests/fixtures/`.
 
 If something breaks on your project, open an issue and tell me what you were trying to do and what happened. If the fix is obvious and you know how to fix it, send a PR.
 
-It's not polished. There are layouts and project shapes I haven't seen that may not handle well. Help me find them.
+Happy localizing!
