@@ -54,6 +54,20 @@ def test_full_babel_cycle(tmp_path, fixtures_dir):
 	assert (proj / "locale/fr/LC_MESSAGES/messages.mo").is_file()
 
 
+def test_nvda_init_po_lands_in_lc_messages(tmp_path, fixtures_dir):
+	proj = tmp_path / "proj"
+	shutil.copytree(fixtures_dir / "nvda-addon", proj)
+	(proj / "babel.cfg").write_text("[python: **.py]\n", encoding="utf-8")
+	(proj / "addon/locale").mkdir(parents=True, exist_ok=True)
+	(proj / "addon/locale/nvda.pot").write_text(
+		'msgid ""\nmsgstr ""\n"Content-Type: text/plain; charset=UTF-8\\n"\n',
+		encoding="utf-8",
+	)
+	r = _run("init-po", "de", cwd=proj)
+	assert r.returncode == 0, r.stderr
+	assert (proj / "addon/locale/de/LC_MESSAGES/nvda.po").is_file()
+
+
 def test_extract_without_babel_cfg_fails_cleanly(tmp_path):
 	# Empty project: no babel.cfg -> pybabel raises FileNotFoundError internally.
 	proj = tmp_path / "empty"

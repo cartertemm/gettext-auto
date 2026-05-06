@@ -203,8 +203,10 @@ def _pot_output_path(det: dict, domain: str) -> str:
 	return f"{po_base}/{domain}.pot"
 
 
-def _po_output_path(layout: dict, lang: str, domain: str) -> str:
+def _po_output_path(layout: dict, lang: str, domain: str, nvda_info: dict | None = None) -> str:
 	"""Where init-po should write a new <lang>.po, mirroring the layout."""
+	if nvda_info is not None:
+		return f"{nvda_info['locale_base']}/{lang}/LC_MESSAGES/nvda.po"
 	po_base = layout["po_base"]
 	if layout["style"] == "standard":
 		return f"{po_base}/{lang}/LC_MESSAGES/{domain}.po"
@@ -253,7 +255,7 @@ def init_po(lang, cwd, domain, po_root):
 	if not det["pot_path"]:
 		raise click.ClickException("init-po failed: no .pot file found; run extract first")
 	pot_rel = det["pot_path"]
-	po_rel = _po_output_path(det["layout"], lang, dom)
+	po_rel = _po_output_path(det["layout"], lang, dom, nvda_info=det["nvda"])
 	po_abs = root / po_rel
 	po_abs.parent.mkdir(parents=True, exist_ok=True)
 	os.chdir(cwd)
