@@ -97,7 +97,7 @@ def scan(lang, cwd, batch, examples_n, po_root):
 			  help="Restrict .po/.pot discovery to this subdirectory of the project.")
 def apply(lang, cwd, input_path, output_path, dry_run, po_root):
 	"""Verify translations and write results back to <lang>.po."""
-	raw = sys.stdin.read() if input_path == "-" else Path(input_path).read_text(encoding="utf-8")
+	raw = sys.stdin.buffer.read().decode("utf-8") if input_path == "-" else Path(input_path).read_text(encoding="utf-8")
 	payload = json.loads(raw)
 	po_root_path = _resolve_po_root(cwd, po_root)
 	det = project.detect(Path(cwd), po_root=po_root_path)
@@ -407,7 +407,7 @@ def nvda_scan(lang, cwd):
 @click.option("--input", "input_path", default="-")
 def nvda_apply(lang, cwd, input_path):
 	"""Write NVDA manifest translations for <lang> from JSON payload."""
-	raw = sys.stdin.read() if input_path == "-" else Path(input_path).read_text(encoding="utf-8")
+	raw = sys.stdin.buffer.read().decode("utf-8") if input_path == "-" else Path(input_path).read_text(encoding="utf-8")
 	payload = json.loads(raw)
 	root = Path(cwd)
 	info = nvda_mod.detect(root)
@@ -461,7 +461,7 @@ def files_scan(lang, cwd, force):
 			  help="Overwrite existing target files.")
 def files_apply(lang, cwd, input_path, force):
 	"""Write translated doc files for <lang> from JSON payload."""
-	raw = sys.stdin.read() if input_path == "-" else Path(input_path).read_text(encoding="utf-8")
+	raw = sys.stdin.buffer.read().decode("utf-8") if input_path == "-" else Path(input_path).read_text(encoding="utf-8")
 	payload = json.loads(raw)
 	root = Path(cwd).resolve()
 	entries, _nvda_info, source_lang = _resolve_files_entries(root)
