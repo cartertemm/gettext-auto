@@ -1,4 +1,4 @@
-"""Per-entry verification. No LLM calls, no I/O."""
+"""Per-entry verification. No LLM calls or I/O."""
 from __future__ import annotations
 
 import re

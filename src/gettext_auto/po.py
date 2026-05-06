@@ -1,4 +1,4 @@
-"""PO file operations. polib wrappers that never call the model."""
+"""PO file operations. These are polib wrappers that never call the model."""
 from __future__ import annotations
 
 import hashlib

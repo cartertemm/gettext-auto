@@ -2,13 +2,10 @@
 
 Translates whole files declared via [[translate_files]] in the user config.
 Source files matching the glob are read verbatim, handed to the model as
-full-file content, and written back to the target path on apply. Existing
-targets are skipped by default (translate-once semantics); pass force=True
-to overwrite them.
+full-file content, and written back to the target path on apply.
 
-Verification is structural, not semantic: the translated file must preserve
-heading, code-fence, and link/image counts relative to the source, and must
-not be empty. Prose correctness is the model's problem.
+For verification, the translated file must preserve heading, code-fence, and link/image counts relative to the source, and must
+not be empty.
 """
 from __future__ import annotations
 
@@ -31,7 +28,8 @@ def default_nvda_entries(info: nvda_mod.NvdaInfo) -> list[TranslateFilesEntry]:
 
 
 def effective_entries(cfg_entries: list[TranslateFilesEntry], nvda_info: nvda_mod.NvdaInfo | None) -> list[TranslateFilesEntry]:
-	"""User config wins. If the user set nothing and the project is an NVDA
+	"""Consult the user config for conventions.
+	If the user set nothing and the project is an NVDA
 	add-on, fall back to the NVDA default."""
 	if cfg_entries:
 		return list(cfg_entries)
@@ -48,8 +46,11 @@ def _expand(template: str, source_lang: str, target_lang: str, relpath: str = ""
 
 
 def _anchor(pattern: str) -> str:
-	"""Return the non-wildcard prefix of a glob pattern. For "doc/en/**/*.md"
-	that's "doc/en". Returns "" if the pattern starts with a wildcard."""
+	"""Return the non-wildcard prefix of a glob pattern.
+
+	Example: "doc/en/**/*.md" resolves to "doc/en".
+
+	Returns a blank string ("") if the pattern starts with a wildcard."""
 	parts = PurePosixPath(pattern).parts
 	anchor_parts: list[str] = []
 	for p in parts:
@@ -156,7 +157,7 @@ _LINK_RE = re.compile(r"!?\[[^\]\n]*\]\([^)\n]*\)")
 
 def _strip_fenced_code(text: str) -> str:
 	"""Drop lines inside ``` fences. Fence lines themselves are dropped too;
-	their count is tracked separately via count_fences."""
+	their count is tracked separately via the count_fences function."""
 	out: list[str] = []
 	in_fence = False
 	for line in text.splitlines(keepends=True):

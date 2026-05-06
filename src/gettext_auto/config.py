@@ -1,13 +1,12 @@
 """Config loader for .gettext-auto.toml.
 
-Looks in three places in order, uses the first one found:
+Looks in three places in order and uses the first one that was found:
   1. <cwd>/.gettext-auto.toml
   2. <cwd>/.claude/.gettext-auto.toml
   3. ~/.claude/.gettext-auto.toml
 
-If no file is found, defaults apply. author_name and author_email default to
-"{git}", which resolves to `git config user.name` / `user.email` when needed.
-If git isn't installed or those keys aren't set, those PO headers are left out.
+If no file is found, defaults apply. author_name and author_email default to "{git}", which resolves to `git config user.name` / `user.email` when needed.
+If git isn't installed or those keys aren't set, the PO headers are left out.
 """
 from __future__ import annotations
 
@@ -23,9 +22,10 @@ GIT_PLACEHOLDER = "{git}"
 
 DEFAULT_TEMPLATE = """\
 # gettext-auto config.
+# https://github.com/cartertemm/gettext-auto/
 #
 # All keys are optional. Uncomment whatever you need. The first file found
-# wins, checked in this order:
+# is applied, checked in this order:
 #   <cwd>/.gettext-auto.toml
 #   <cwd>/.claude/.gettext-auto.toml
 #   ~/.claude/.gettext-auto.toml
@@ -151,6 +151,7 @@ def _parse_translate_files(raw: object) -> list[TranslateFilesEntry]:
 
 
 def _git_config_value(cwd: Path, key: str) -> str:
+	"""Obtains a config value from the git installation."""
 	try:
 		result = subprocess.run(
 			["git", "config", "--get", key],
@@ -168,9 +169,7 @@ def _git_config_value(cwd: Path, key: str) -> str:
 
 def resolve_author(cfg: Config, cwd: Path) -> tuple[str, str]:
 	"""Resolve the author name and email, expanding "{git}" by reading git config.
-
 	Either value may be empty if git isn't installed or the key isn't set.
-	Treat empty strings as "omit this header", not an error.
 	"""
 	name = cfg.author_name
 	email = cfg.author_email
@@ -184,7 +183,7 @@ def resolve_author(cfg: Config, cwd: Path) -> tuple[str, str]:
 def write_default_config(path: Path, force: bool = False) -> None:
 	"""Write the commented template at `path`.
 
-	Bails out with FileExistsError if something's already there. Pass
+	Raises a FileExistsError if the target exists. Pass
 	force=True to clobber it anyway.
 	"""
 	if path.exists() and not force:

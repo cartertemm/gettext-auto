@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import TypedDict
 
 
-# Only these manifest keys are translated. Kept narrow on purpose; expanding
-# the scope risks stomping non-prose fields (version, url, minimumNVDAVersion).
+# Only these manifest keys are translated.
+# This is kept narrow on purpose, because expanding the scope risks overriding fields which aren't text (version, url, minimumNVDAVersion).
 TRANSLATABLE_KEYS: tuple[str, ...] = ("summary", "description")
 
 
@@ -19,7 +19,7 @@ class NvdaInfo(TypedDict):
 def detect(root: Path | str) -> NvdaInfo | None:
 	"""Return NvdaInfo if this looks like an NVDA add-on, else None.
 
-	Signal: either addon/manifest.ini exists, or manifest.ini at root sits
+	NVDA add-ons have either addon/manifest.ini, or manifest.ini
 	alongside a locale/ directory.
 	"""
 	root = Path(root)
@@ -68,8 +68,7 @@ def _locale_path(root: Path, info: NvdaInfo, lang: str) -> tuple[str, Path]:
 
 def scan_manifest(root: Path | str, lang: str, info: NvdaInfo) -> dict:
 	"""Enumerate keys in TRANSLATABLE_KEYS that have a source string but no
-	translation yet. Emits the same entry shape as gettext `scan` so the model
-	prompt and JSON contract can be reused.
+	translation yet.
 	"""
 	root = Path(root)
 	base = _load(root / info["base_manifest_path"])
